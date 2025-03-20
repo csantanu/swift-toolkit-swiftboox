@@ -1,0 +1,20 @@
+Quick tips on how to use the Swiftboox eBook Reader
+● After you successfully logged in, all your books are synced and downloaded from your cloud library.
+● You can now put your device in Airplane mode to enjoy offline reading as well.
+● Tap on the book cover and the book will be opened up in our eReader showing the cover page, if it is opened for the first time.
+● To navigate to the next or previous pages you can either - swipe from right to left for next page or left to right for previous page. You can also just tap on the right edge of the device for next page and similarly left edge of the device for previous page.
+● Tap on the centre of the book and the menu will appear on the top with 3 options:
+    ○ - Bookmark icon - tap on it and the current page will be bookmarked. The bookmarks can be accessed via the Navigator icon (Three lines).
+    ○ - Text icon - for changing Brightness, Font size, Font selection, Reading mode - Default, Sepia and Night mode and scroll mode which toggles between continuous scroll mode and page mode.
+    ○ - Navigator icon - You can navigate the book via the Contents page or any Bookmarks that you may have added.
+● Tap on the centre again, the top menu will disappear.
+● Below footer will display the pagination count.
+● Click on The <My Library to get back to your library.
+● The app remembers Last Location Read, so when you open the book again, it will show the page you were in, automatically.
+● Space Management
+    ○ - All eBooks are downloaded offline to secure local storage.
+    ○ - If you would like to delete a book to save local storage, follow the below steps:
+    ○ - Samples - Long press on the book cover and the cover will rotate to reveal a new menu. Click on Remove and it will remove the book completely.
+    ○ - Purchased - Long press on the book cover and the cover will rotate to reveal a new menu. Click on Remove and an alert will popup which tells you that book will be only removed from the local storage and can be downloaded anytime from your cloud library by clicking on the refresh.
+● That's it !! Enjoy reading !!
+● If you face any problem / issues, drop us a mail at - swiftboox@gmail.com

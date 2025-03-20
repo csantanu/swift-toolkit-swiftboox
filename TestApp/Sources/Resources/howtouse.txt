@@ -1,0 +1,21 @@
+Welcome to Swiftboox iOS Bengali eBook Reader !! 
+ 
+
+Introduction
+Swiftboox iOS app is the eBook reader app for eBooks purchased from our web store.
+
+This app does not allow any purchase of eBooks or download samples. For all purchases please visit the website.
+
+ 
+
+How to use
+● When you install and open the app, you will get the default Library page.
+● Before you login, please ensure that you have already registered in our website.
+● Click on the Refresh icon on the right-hand-top corner and you will get the login screen.
+● Login with your email and password that you have used for registering in the site.
+● If you have forgotten your password, click on Forgot Password link and an external browser will open to take you to our website. You can then click on side-menu, click on your profile photo and then scroll below for logout button. After that, from the login screen, you can click on the Forgot Password link and follow on-screen instructions.
+● After you are successfully logged in, the app will start syncing all your purchased and samples from your cloud library and download to your device.
+● If you would like to browse and buy new books, click on the middle icon - Store and an external browser will open to take you to our website.
+● After a book purchase, you can return to the Swiftboox app and click on the Refresh icon. It will download the new book to your device.
+● That's It !! No more complex stuff between you and your favorite book for start reading !!
+● Facing any issues? mail us at - swiftboox@gmail.com

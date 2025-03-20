@@ -179,7 +179,7 @@ final class LibraryService: Loggable {
     /// Inserts the given `book` in the bookshelf.
     private func insertBook(at url: AbsoluteURL, publication: Publication, mediaType: MediaType?, coverPath: String?) async throws -> Book {
         // Makes the URL relative to the Documents/ folder if possible.
-        let url: AnyURL = Paths.documents.relativize(url)?.anyURL ?? url.anyURL
+        let url: AnyURL = Paths.library.relativize(url)?.anyURL ?? url.anyURL
 
         let book = Book(
             identifier: publication.metadata.identifier,
@@ -218,7 +218,7 @@ final class LibraryService: Loggable {
     }
 
     private func removeBookFile(at url: FileURL) throws {
-        guard Paths.documents.isParent(of: url) else {
+        guard Paths.library.isParent(of: url) else {
             return
         }
         do {
@@ -241,7 +241,7 @@ private extension Book {
 
         case let .relative(relativeURL):
             // Path relative to Documents/.
-            guard let url = Paths.documents.resolve(relativeURL) else {
+            guard let url = Paths.library.resolve(relativeURL) else {
                 throw LibraryError.bookNotFound
             }
             return url
