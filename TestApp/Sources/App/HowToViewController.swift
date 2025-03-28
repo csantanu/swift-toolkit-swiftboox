@@ -6,6 +6,38 @@
 
 import Foundation
 import UIKit
+import SwiftUI
+
+struct HowToUseView: UIViewControllerRepresentable {
+    
+    typealias UIViewControllerType = HowToViewController
+    
+    func makeUIViewController(context: Context) -> HowToViewController {
+        let vc = HowToViewController()
+        vc.isHowToUse = 1
+        return vc
+    }
+    
+    func updateUIViewController(_ uiViewController: HowToViewController, context: Context) {
+        
+    }
+}
+
+struct HowToReadView: UIViewControllerRepresentable {
+    
+    typealias UIViewControllerType = HowToViewController
+    var isHowToUse = 1
+    
+    func makeUIViewController(context: Context) -> HowToViewController {
+        let vc = HowToViewController()
+        vc.isHowToUse = 0
+        return vc
+    }
+    
+    func updateUIViewController(_ uiViewController: HowToViewController, context: Context) {
+        
+    }
+}
 
 class HowToViewController: UIViewController {
     

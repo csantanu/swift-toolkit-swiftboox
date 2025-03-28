@@ -6,15 +6,60 @@
 
 import SwiftUI
 
+extension Notification.Name {
+    static let reloadAboutTableNotification = Notification.Name("reloadAboutTableNotification")
+    static let removeAllBooksNotification = Notification.Name("removeAllBooksNotification")
+}
+
 struct AboutView: View {
+    
+    @State private var presenHowToUse = false
+    @State private var presenHowToRead = false
+    @State private var presenLogoutConfirmation = false
+    @State private var presenCantLogout = false
+    @State private var showAccountSection = false
+    
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .center, spacing: 20) {
                 versionSection
-                copyrightSection
-                acknowledgementsSection
+                helpSection
+                supportSection
+                if showAccountSection {
+                    logoutSection
+                }
             }
             .padding(.horizontal, 16)
+        }.sheet(isPresented: $presenHowToUse) {
+            HowToUseView()
+        }.sheet(isPresented: $presenHowToRead) {
+            HowToReadView()
+        }.alert("Confirm Logout", isPresented: $presenLogoutConfirmation) {
+            Button(NSLocalizedString("confirm_button", comment: ""), role: .destructive) {
+                showAccountSection = false
+                // clear stored user id
+                UserDefaults.standard.setValue(nil, forKey: "user_id")
+                UserDefaults.standard.setValue(nil, forKey: "user_profile_picture")
+                UserDefaults.standard.setValue(nil, forKey: "user_full_name")
+                // remove all books
+                NotificationCenter.default.post(name: .removeAllBooksNotification, object: nil, userInfo: ["controller" : self])
+            }
+            Button(NSLocalizedString("cancel_button", comment: ""), role: .cancel) {}
+        } message: {
+            Text("All your downloaded books will be removed from this device. Are you sure you want to log out?")
+        }.alert("Can't Logout", isPresented: $presenCantLogout) {
+            Button(NSLocalizedString("ok_button", comment: ""), role: .cancel) {}
+        } message: {
+            Text("Library refresh is in progress. Can't log out now. Try after refreshing is done.")
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .reloadAboutTableNotification, object: nil)) { _ in
+            showAccountSection = true
+        }
+        .onAppear {
+            if let userId = UserDefaults.standard.value(forKey: "user_id") as? String,
+               userId.count > 0 {
+                showAccountSection = true
+            }
         }
     }
 
@@ -43,40 +88,79 @@ struct AboutView: View {
         }
     }
 
-    private var copyrightSection: some View {
+    private var helpSection: some View {
         AboutSectionView(
-            title: "Copyright",
-            icon: .circle
+            title: "Help",
+            icon: .help
         ) {
-            VStack(alignment: .leading) {
-                Link(destination: .edrlab) {
-                    Text("© 2022 European Digital Reading Lab")
-                        .multilineTextAlignment(.leading)
-                }
-
-                Link(destination: .license) {
-                    Text("[BSD-3 License]")
-                        .multilineTextAlignment(.leading)
-                }
+            VStack {
+                Button(action: {
+                    presenHowToUse = true
+                }, label: {
+                    HStack {
+                        Text("How to use this app")
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Image(systemName: "greaterthan.circle")
+                    }
+                    .padding(.bottom)
+                })
+                Button(action: {
+                    presenHowToRead = true
+                }, label: {
+                    HStack(spacing: 10) {
+                        Text("How to read eBooks in the app")
+                            .foregroundColor(.secondary)
+                        Spacer()
+                        Image(systemName: "greaterthan.circle")
+                    }
+                })
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    private var acknowledgementsSection: some View {
+    private var supportSection: some View {
         AboutSectionView(
-            title: "Acknowledgements",
-            icon: .hands
+            title: "Support",
+            icon: .support
         ) {
-            VStack(alignment: .center) {
-                Text("R2 Reader wouldn't have been developed without the financial help of the French State.")
+            VStack() {
+                Text("For any problem or queries, send us an email to swiftboox@gmail.com")
                     .multilineTextAlignment(.center)
-                    .foregroundColor(.primary)
-                Image("rf")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 200)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .foregroundColor(.secondary)
+            }
+        }
+    }
+    
+    private var logoutSection: some View {
+        AboutSectionView(
+            title: "Account",
+            icon: .account
+        ) {
+            VStack() {
+                if let userName = UserDefaults.standard.value(forKey: "user_full_name") as? String,
+                   userName.count > 0 {
+                    Text("Signed in as \(userName)")
+                        .multilineTextAlignment(.center)
+                        .foregroundColor(.secondary)
+                        .padding(.bottom)
+                }
+                HStack {
+                    Button(action: { // logout
+                        if let appdel = UIApplication.shared.delegate as? AppDelegate {
+                            if (appdel.isRefreshingLibrary == false) {
+                                presenLogoutConfirmation = true
+                            } else {
+                                presenCantLogout = true
+                            }
+                        }
+                    }, label: {
+                        Text("Logout")
+                            .fontWeight(.bold)
+                            .multilineTextAlignment(.center)
+                            .foregroundColor(.red)
+                    })
+                }
             }
         }
     }

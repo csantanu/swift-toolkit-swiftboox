@@ -38,6 +38,12 @@ struct Book: Codable {
     /// JSON of user preferences specific to this publication (e.g. language,
     /// reading progression, spreads).
     var preferencesJSON: String?
+    
+    /// If publication is a smaple type
+    let isSample: Bool?
+    
+    /// Publication ID retrieved from server
+    let bookId: Int?
 
     var mediaType: MediaType { MediaType(type) ?? .binary }
 
@@ -51,7 +57,9 @@ struct Book: Codable {
         coverPath: String? = nil,
         locator: Locator? = nil,
         created: Date = Date(),
-        preferencesJSON: String? = nil
+        preferencesJSON: String? = nil,
+        isSample: Bool? = false,
+        bookId: Int? = 0
     ) {
         self.id = id
         self.identifier = identifier
@@ -64,6 +72,8 @@ struct Book: Codable {
         progression = locator?.locations.totalProgression ?? 0
         self.created = created
         self.preferencesJSON = preferencesJSON
+        self.isSample = isSample
+        self.bookId = bookId
     }
 
     var cover: FileURL? {

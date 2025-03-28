@@ -11,6 +11,9 @@ struct AboutSectionView<Content: View>: View {
         case app = "app.badge"
         case circle = "c.circle"
         case hands = "hands.sparkles"
+        case help = "questionmark.circle"
+        case support = "envelope"
+        case account = "person.circle"
     }
 
     private let title: String

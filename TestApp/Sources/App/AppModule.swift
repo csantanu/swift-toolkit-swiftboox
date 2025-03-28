@@ -62,7 +62,7 @@ final class AppModule {
 
     private(set) lazy var aboutViewController: UIViewController = {
         let hostingController = UIHostingController(rootView: AboutView())
-        hostingController.navigationItem.title = "About the Readium Swift Toolkit"
+        hostingController.navigationItem.title = "Help"
         hostingController.navigationItem.largeTitleDisplayMode = .never
         return UINavigationController(rootViewController: hostingController)
     }()
