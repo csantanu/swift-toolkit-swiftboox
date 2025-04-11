@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="23504" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.XIB" version="3.0" toolsVersion="23727" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
     <device id="retina4_7" orientation="portrait" appearance="light"/>
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23506"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23721"/>
         <capability name="Safe area layout guides" minToolsVersion="9.0"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
@@ -58,6 +58,16 @@
                             </view>
                         </subviews>
                     </stackView>
+                    <label hidden="YES" opaque="NO" userInteractionEnabled="NO" alpha="0.59999999999999998" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Now reading" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" minimumScaleFactor="0.5" adjustsFontForContentSizeCategory="YES" translatesAutoresizingMaskIntoConstraints="NO" id="2r5-kJ-gvM">
+                        <rect key="frame" x="0.0" y="200" width="150" height="20"/>
+                        <color key="backgroundColor" red="0.33333334329999997" green="0.098039209840000002" blue="0.40392160420000001" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
+                        <constraints>
+                            <constraint firstAttribute="height" constant="20" id="B61-IB-4pa"/>
+                        </constraints>
+                        <fontDescription key="fontDescription" type="system" pointSize="11"/>
+                        <color key="textColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <nil key="highlightedColor"/>
+                    </label>
                     <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="sample_ribbon.png" translatesAutoresizingMaskIntoConstraints="NO" id="8ih-ds-PC5">
                         <rect key="frame" x="94" y="0.0" width="56" height="56"/>
                         <constraints>
@@ -65,20 +75,37 @@
                             <constraint firstAttribute="height" constant="56" id="LKV-V9-aTi"/>
                         </constraints>
                     </imageView>
+                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" alpha="0.59999999999999998" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="icloud.and.arrow.down" catalog="system" adjustsImageSizeForAccessibilityContentSizeCategory="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Ohv-Wz-kkM">
+                        <rect key="frame" x="6" y="7.5" width="30" height="34.5"/>
+                        <color key="backgroundColor" white="0.33333333333333331" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <color key="tintColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <constraints>
+                            <constraint firstAttribute="width" constant="30" id="cw8-3S-d8C"/>
+                            <constraint firstAttribute="height" constant="30" id="sXD-Ip-nnj"/>
+                        </constraints>
+                        <preferredSymbolConfiguration key="preferredSymbolConfiguration" weight="bold"/>
+                    </imageView>
                 </subviews>
             </view>
             <viewLayoutGuide key="safeArea" id="ZTg-uK-7eu"/>
             <constraints>
                 <constraint firstItem="KhJ-A1-NVt" firstAttribute="leading" secondItem="gTV-IL-0wX" secondAttribute="leading" id="0zg-fP-jcr"/>
+                <constraint firstItem="2r5-kJ-gvM" firstAttribute="leading" secondItem="gTV-IL-0wX" secondAttribute="leading" id="2FE-cZ-hFp"/>
                 <constraint firstItem="8ih-ds-PC5" firstAttribute="top" secondItem="gTV-IL-0wX" secondAttribute="top" id="Ax7-G8-cU6"/>
                 <constraint firstAttribute="trailing" secondItem="8ih-ds-PC5" secondAttribute="trailing" id="DSu-Cs-rRu"/>
                 <constraint firstItem="KhJ-A1-NVt" firstAttribute="top" secondItem="gTV-IL-0wX" secondAttribute="top" id="JGi-ub-Xfe"/>
                 <constraint firstAttribute="trailing" secondItem="KhJ-A1-NVt" secondAttribute="trailing" id="JpO-SN-xWE"/>
+                <constraint firstItem="2r5-kJ-gvM" firstAttribute="bottom" secondItem="OAe-VD-5Lx" secondAttribute="bottom" id="L3g-G1-m98"/>
+                <constraint firstItem="Ohv-Wz-kkM" firstAttribute="leading" secondItem="gTV-IL-0wX" secondAttribute="leading" constant="6" id="bCD-uU-CWX"/>
+                <constraint firstItem="Ohv-Wz-kkM" firstAttribute="top" secondItem="gTV-IL-0wX" secondAttribute="top" constant="8" id="cJ0-t8-SYl"/>
+                <constraint firstAttribute="trailing" secondItem="2r5-kJ-gvM" secondAttribute="trailing" id="kNG-Em-PA0"/>
                 <constraint firstAttribute="bottom" secondItem="KhJ-A1-NVt" secondAttribute="bottom" id="lg8-f2-pRv"/>
             </constraints>
             <connections>
                 <outlet property="authorLabel" destination="i6P-RP-5x6" id="jFQ-em-Voz"/>
+                <outlet property="cloudDownloadImageView" destination="Ohv-Wz-kkM" id="hbg-Ou-GhB"/>
                 <outlet property="coverImageView" destination="OAe-VD-5Lx" id="f2t-iu-jSA"/>
+                <outlet property="currentlyReadingLabel" destination="2r5-kJ-gvM" id="BpL-Is-OtV"/>
                 <outlet property="sampleRibbonImageView" destination="8ih-ds-PC5" id="vw1-Wc-Oxo"/>
                 <outlet property="titleLabel" destination="B1J-6q-QP1" id="MIo-rt-gYm"/>
             </connections>
@@ -86,6 +113,7 @@
         </collectionViewCell>
     </objects>
     <resources>
+        <image name="icloud.and.arrow.down" catalog="system" width="128" height="120"/>
         <image name="sample_ribbon.png" width="203" height="203"/>
     </resources>
 </document>

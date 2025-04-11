@@ -23,7 +23,7 @@ struct Book: Codable {
     var type: String
     /// Location of the packaged publication or a manifest. It can be a relative
     /// path to the Documents/ folder, or an absolute URL.
-    var url: String
+    var url: String?
     /// Location of the cover.
     var coverPath: String?
     /// Last read location in the publication.
@@ -41,6 +41,8 @@ struct Book: Codable {
     
     /// If publication is a smaple type
     let isSample: Bool?
+    /// If publication is a smaple type
+    let isReading: Bool?
     
     /// Publication ID retrieved from server
     let bookId: Int?
@@ -53,12 +55,13 @@ struct Book: Codable {
         title: String,
         authors: String? = nil,
         type: String,
-        url: AnyURL,
+        url: String,
         coverPath: String? = nil,
         locator: Locator? = nil,
         created: Date = Date(),
         preferencesJSON: String? = nil,
         isSample: Bool? = false,
+        isReading: Bool? = false,
         bookId: Int? = 0
     ) {
         self.id = id
@@ -66,13 +69,14 @@ struct Book: Codable {
         self.title = title
         self.authors = authors
         self.type = type
-        self.url = url.string
+        self.url = url
         self.coverPath = coverPath
         self.locator = locator
         progression = locator?.locations.totalProgression ?? 0
         self.created = created
         self.preferencesJSON = preferencesJSON
         self.isSample = isSample
+        self.isReading = isReading
         self.bookId = bookId
     }
 
@@ -131,7 +135,52 @@ final class BookRepository {
             return Book.Id(rawValue: db.lastInsertedRowID)
         }
     }
+    
+    func update(for bookId: Int, _ book: Book) async throws -> Bool {
+        try await db.write { db in
+            try db.execute(literal: """
+                UPDATE book
+                   SET url = \(book.url), type = \(book.type), authors = \(book.authors)
+                 WHERE bookId = \(bookId)
+            """)
+            // return Book.Id(rawValue: db.lastInsertedRowID)
+            return Book.Id(rawValue: db.lastInsertedRowID).rawValue == bookId
+        }
+    }
+    
+    func setCurrentlyReading(for bookId: Int) async throws {
+        try await db.write { db in
+            try db.execute(literal: """
+                UPDATE book
+                   SET isReading = (bookId = \(bookId))
+            """)
+        }
+    }
+    
+    func removeBookEntryFromDataBase(_ book: Book) async throws -> Bool {
+        guard let bookId = book.bookId else {
+            return false
+        }
+        if let isSample = book.isSample,
+           isSample == true {
+            try await db.write { db in try Book.deleteOne(db, key: book.id) }
+            return true
+        } else {
+            try await db.write { db in
+                try db.execute(literal: """
+                    UPDATE book
+                       SET url = \(""), type = \("")
+                     WHERE bookId = \(bookId)
+                """)
+            }
+            return true
+        }
+    }
 
+    func removeAll() async throws {
+        try await db.write { db in try Book.deleteAll(db) }
+    }
+    
     func remove(_ id: Book.Id) async throws {
         try await db.write { db in try Book.deleteOne(db, key: id) }
     }

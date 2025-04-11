@@ -72,7 +72,7 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
 
     override func viewDidLoad() {
         super.viewDidLoad()
-
+        
         library.allBooks()
             .receive(on: DispatchQueue.main)
             .sink { completion in
@@ -93,9 +93,10 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
         collectionView.addGestureRecognizer(recognizer)
         collectionView.accessibilityLabel = NSLocalizedString("library_a11y_label", comment: "Accessibility label for the library collection view")
 
-        // navigationItem.rightBarButtonItem = addBookButton
         setRightBarButton()
     }
+    
+    
 
     override func viewWillAppear(_ animated: Bool) {
         navigationController?.setNavigationBarHidden(false, animated: animated)
@@ -109,9 +110,11 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
         NotificationCenter.default.removeObserver(self)
         NotificationCenter.default.addObserver(
             self,
-            selector: #selector(self.removeAllBooksNotificationHandler(notification:)),
-            name: NSNotification.Name(rawValue: "removeAllBooksNotification"),
-            object: nil)
+            selector: #selector(removeAllBooksNotificationHandler(_:)),
+            name: .removeAllBooksNotification,
+            object: nil
+        )
+        
         super.viewDidAppear(animated)
     }
 
@@ -178,7 +181,7 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
         } else {
             activityIndicatorView.stopAnimating()
             self.navigationItem.rightBarButtonItem = refreshLibraryButton
-            self.navigationItem.title = "My Library"
+            self.navigationItem.title = "Library"
         }
     }
     
@@ -228,7 +231,7 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
 //          UserDefaults.standard.setValue(nil, forKey: "user_id")
         
         if (!Reachability.isConnectedToNetwork()) {
-            toast("Network connection problem.", on: self.view, duration: 2)
+            toast("Network connection problem", on: self.view, duration: 2)
             return
         }
         
@@ -252,10 +255,7 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
     }
     
     func refreshBooks (userId: String?) {
-        self.showRefreshLoader(status: true)
-        if let appdel = UIApplication.shared.delegate as? AppDelegate {
-            appdel.isRefreshingLibrary = true
-        }
+        startStopRefresh(shouldStart: true)
         let url = URL(string: APILink.BASE_URL + APILink.GET_CUSTOMER_BOOKS)!
         var request = URLRequest(url: url)
         request = SharedFunctions.setRequestHeader(request: request, method: "POST")
@@ -263,32 +263,20 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
         let uuid = UIDevice.current.identifierForVendor?.uuidString ?? ""
         let postString = "customer_id=\(userId!)&uuid=\(uuid)"
         request.httpBody = postString.data(using: .utf8)
-        toast("Fetching your books.", on: self.view, duration: 2)
+        toast("Fetching your books", on: self.view, duration: 2)
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             guard let data = data,
                 let response = response as? HTTPURLResponse,
                 error == nil else {
                 print("error", error ?? "Unknown error")
-                DispatchQueue.main.async {
-                    toast("Error fetching records", on: self.view, duration: 2)
-                    self.showRefreshLoader(status: false)
-                    if let appdel = UIApplication.shared.delegate as? AppDelegate {
-                        appdel.isRefreshingLibrary = false
-                    }
-                }
+                self.startStopRefresh(shouldStart: false, toastMessege: "Error fetching records")
                 return
             }
 
             guard (200 ... 299) ~= response.statusCode else {
                 print("statusCode should be 2xx, but is \(response.statusCode)")
                 print("response = \(response)")
-                DispatchQueue.main.async {
-                    toast("Error fetching books.", on: self.view, duration: 2)
-                    self.showRefreshLoader(status: false)
-                    if let appdel = UIApplication.shared.delegate as? AppDelegate {
-                        appdel.isRefreshingLibrary = false
-                    }
-                }
+                self.startStopRefresh(shouldStart: false, toastMessege: "Error fetching records")
                 return
             }
             
@@ -298,24 +286,13 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
                 if let customersbooks_data = parsedData["customersbooks_data"] as? Array<Any> {
                     print("total books found: \(customersbooks_data.count)")
                     if (customersbooks_data.count == 0) {
-                        DispatchQueue.main.async {
-                            toast("You have no purchased books.", on: self.view, duration: 2)
-                            self.showRefreshLoader(status: false)
-                            if let appdel = UIApplication.shared.delegate as? AppDelegate {
-                                appdel.isRefreshingLibrary = false
-                            }
-                        }
+                        self.startStopRefresh(shouldStart: false, toastMessege: "You have no purchased books")
                         return
                     } else if (customersbooks_data.count == self.books.count) {
                         let alert = UIAlertController(title: "Confirm Resync", message: "Your library is already synched. Are you sure you want to synch again?", preferredStyle: .alert)
                         alert.addAction(UIAlertAction(title: NSLocalizedString("confirm_button", comment: ""), style: .default, handler: { _ in self.buildBooksList(customersbooks_data: customersbooks_data) }))
                         alert.addAction(UIAlertAction(title: NSLocalizedString("cancel_button", comment: ""), style: .default, handler: { _ in
-                            DispatchQueue.main.async {
-                                self.showRefreshLoader(status: false)
-                                if let appdel = UIApplication.shared.delegate as? AppDelegate {
-                                    appdel.isRefreshingLibrary = false
-                                }
-                            }
+                            self.startStopRefresh(shouldStart: false)
                         }))
                         DispatchQueue.main.async {
                             self.present(alert, animated: true)
@@ -326,12 +303,7 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
                 }
             } catch let error as NSError {
                 print(error)
-                DispatchQueue.main.async {
-                    self.showRefreshLoader(status: false)
-                    if let appdel = UIApplication.shared.delegate as? AppDelegate {
-                        appdel.isRefreshingLibrary = false
-                    }
-                }
+                self.startStopRefresh(shouldStart: false)
             }
         }
 
@@ -340,12 +312,12 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
     
     func buildBooksList(customersbooks_data: Array<Any>) {
         DispatchQueue.main.async {
-            toast("Syncing library with \(customersbooks_data.count) books.", on: self.view, duration: 3)
+            toast("Syncing library with \(customersbooks_data.count) books", on: self.view, duration: 3)
         }
         
         var userBookDataArray : Array<Any> = []
         
-        for item in customersbooks_data {
+        for item in customersbooks_data.reversed() {
             // print("refreshBooks: \(item)")
             if let obj = item as? [String:Any] {
                 var elemet : [String:Any] = [:]
@@ -354,14 +326,8 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
                 elemet["is_sample"] = obj["is_sample"]
                 elemet["cover"] = obj["cover"]
                 elemet["customer_id"] = obj["customer_id"]
-                
-                if let bookFileUrl = obj["return_file"] as? String {
-                    let urlString = bookFileUrl.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed)
-                    if (urlString != nil), let bookUrl = URL(string: urlString!) {
-                        elemet["return_file"] = bookUrl
-                        userBookDataArray.append(elemet)
-                    }
-                }
+                elemet["product_title"] = obj["product_title"]
+                userBookDataArray.append(elemet)
             }
         }
         
@@ -372,14 +338,17 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
     }
     
     func loadBooks (userBookDataArray: Array<Any>) {
-        /*DispatchQueue.main.async {
-            self.showRefreshLoader(status: true)
-            var urlArray : [URL] = []
+        DispatchQueue.main.async {
+            self.startStopRefresh(shouldStart: true)
             var isSampleArray : [Bool] = []
             var bookIdArray : [Int] = []
+            var bookTitleArray : [String] = []
+            var bookCoverArray : [String] = []
             for item in userBookDataArray {
                 if let obj = item as? [String:Any] {
                     var bookExists = false
+                    var bookTitle = ""
+                    var bookCover = ""
                     guard let bookId = obj["id"] as? Int else {
                         toast("Sync error", on: self.view, duration: 2)
                         return
@@ -391,10 +360,12 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
                                 // user purchased a book, previously there as a sample
                                 // remove the sample & it will add it back as purchased
                                 print("sample purchased")
-                                do {
-                                    try self.library.remove(book)
-                                } catch {
-                                    print(error)
+                                Task {
+                                    do {
+                                        _ = try await self.library.remove(book)
+                                    } catch {
+                                        print(error)
+                                    }
                                 }
                             } else {
                                 bookExists = true
@@ -402,63 +373,77 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
                             }
                         }
                     }
-                    if let url = obj["return_file"] as? URL, !bookExists {
-                        urlArray.append(url)
+                    if !bookExists {
                         if (obj["order_id"] as? Int) != nil {
                             isSampleArray.append(false)
                         } else {
                             isSampleArray.append(true)
                         }
+                        if let product_title = obj["product_title"] as? String,
+                           product_title.count > 0 {
+                            bookTitle = product_title
+                        }
+                        if let cover = obj["cover"] as? String,
+                           cover.count > 0 {
+                            bookCover = cover
+                        }
+                        
+                        if let lastPathComp = bookCover.components(separatedBy: "/").last {
+                            bookCover = "\(APILink.COVER_PATH)\(lastPathComp)"
+                        }
                         bookIdArray.append(bookId)
+                        bookTitleArray.append(bookTitle)
+                        bookCoverArray.append(bookCover)
                     }
                 }
             }
             
-            // print("urls: \(urlArray)")
-            
-            func retry(message: String? = nil) {
+            func retry() {
                 if (self.isRetrying) {
                     self.loadBooks(userBookDataArray: userBookDataArray)
                 }
             }
             
-            self.library.importPublications(from: urlArray, isSamples: isSampleArray, bookIds: bookIdArray, sender: self) { result in
-                if case .failure(let error) = result {
-                    if (!self.isRetrying) {
-                        self.isRetrying = true
-                        retry(message: error.localizedDescription)
-                    } else {
-                        self.isRetrying = false
-                        print("books download completed with errors")
-                        toast("Completed syncing with errors.", on: self.view, duration: 2)
-                        self.showRefreshLoader(status: false)
-                        if let appdel = UIApplication.shared.delegate as? AppDelegate {
-                            appdel.isRefreshingLibrary = false
+            self.isRetrying = false
+            self.startStopRefresh(shouldStart: false)
+            
+            Task {
+                do {
+                    try await self.library.insertAllBookData(isSamples: isSampleArray,
+                                                             bookIds: bookIdArray,
+                                                             bookTitles: bookTitleArray,
+                                                             bookCovers: bookCoverArray,
+                                                             sender: self) { result in
+                        if result {
+                            self.isRetrying = false
+                            print("books data fetching completed succesfully")
+                            self.startStopRefresh(shouldStart: false, toastMessege: "Completed syncing your books")
+                        } else {
+                            if (!self.isRetrying) {
+                                self.isRetrying = true
+                                retry()
+                            } else {
+                                self.isRetrying = false
+                                print("books download completed with errors")
+                                toast("Completed syncing with errors", on: self.view, duration: 2)
+                                self.startStopRefresh(shouldStart: false)
+                            }
                         }
                     }
-                } else {
-                    self.isRetrying = false
-                    print("books download completed succesfully")
-                    toast("Completed syncing your books.", on: self.view, duration: 3)
-                    self.showRefreshLoader(status: false)
-                    if let appdel = UIApplication.shared.delegate as? AppDelegate {
-                        appdel.isRefreshingLibrary = false
-                    }
+                } catch {
+                    
                 }
             }
-        }*/
+        }
     }
     
     fileprivate func removeAllBooks() async {
-        for book in self.books {
-            do {
-                try await self.library.remove(book)
-                self.books.removeAll()
-                self.collectionView.reloadData()
-                print("all books removed")
-            } catch {
-                print(error)
-            }
+        do {
+            try await self.library.clearAllFilesAndDataBase(bookArray: self.books)
+            self.collectionView.reloadData()
+            print("all books removed")
+        } catch {
+            print(error)
         }
     }
     
@@ -466,29 +451,30 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
         self.navigationItem.leftBarButtonItem = nil
     }
     
-    @objc func removeAllBooksNotificationHandler(notification: NSNotification) async {
-        if let aboutvc = notification.userInfo?["controller"] as? AboutTableViewController{
-            DispatchQueue.main.async {
-                toast("Logged out", on: aboutvc.view, duration: 3)
-            }
+    @objc func removeAllBooksNotificationHandler (_ notification: Notification) {
+        Task {
+            await removeAllBooks()
         }
-        
-        await removeAllBooks()
         removeProfilePicture()
         setRightBarButton()
+        if let aboutView = notification.userInfo?["controller"] as? AboutView{
+            DispatchQueue.main.async {
+                aboutView.showLoggedOutAlert = true
+            }
+        }
     }
     
     func removeBookFromCloudLibrary (book: Book) {
         guard let userId = UserDefaults.standard.value(forKey: "user_id") else {
             DispatchQueue.main.async {
-                toast("Error removing book from cloud.", on: self.view, duration: 2)
+                toast("Error removing book from cloud", on: self.view, duration: 2)
             }
             return
         }
         
         guard let bookId = book.bookId else {
             DispatchQueue.main.async {
-                toast("Error removing book from cloud.", on: self.view, duration: 2)
+                toast("Error removing book from cloud", on: self.view, duration: 2)
             }
             return
         }
@@ -527,10 +513,9 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
                 print(parsedData)
                 if let success = parsedData["success"] as? String, success == "1" {
                     DispatchQueue.main.async {
-                        toast("Removed book sample from library.", on: self.view, duration: 2)
+                        toast("Removed book sample from library", on: self.view, duration: 2)
                     }
                 }
-                
             } catch let error as NSError {
                 print(error)
             }
@@ -584,6 +569,18 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
             }
         }
     }
+    
+    func startStopRefresh(shouldStart start:Bool, toastMessege: String? = nil) {
+        DispatchQueue.main.async {
+            if let toastMessege = toastMessege {
+                toast(toastMessege, on: self.view, duration: 2)
+            }
+            self.showRefreshLoader(status: start)
+            if let appdel = UIApplication.shared.delegate as? AppDelegate {
+                appdel.isRefreshingLibrary = start
+            }
+        }
+    }
 }
 
 extension LibraryViewController {
@@ -594,8 +591,12 @@ extension LibraryViewController {
 
         let location = gestureRecognizer.location(in: collectionView)
         if let indexPath = collectionView.indexPathForItem(at: location) {
-            let cell = collectionView.cellForItem(at: indexPath) as! PublicationCollectionViewCell
-            cell.flipMenu()
+            let book = books[indexPath.item]
+            if let bookurl = book.url, bookurl.count > 0 ||
+                book.isSample == true {
+                let cell = collectionView.cellForItem(at: indexPath) as! PublicationCollectionViewCell
+                cell.flipMenu()
+            }
         }
     }
 }
@@ -645,6 +646,15 @@ extension LibraryViewController: UICollectionViewDelegateFlowLayout, UICollectio
         return books.count
     }
 
+    fileprivate func setTextImageOnCell(_ collectionView: UICollectionView, _ book: Book, _ cell: PublicationCollectionViewCell) {
+        DispatchQueue.main.async {
+            let flowLayout = collectionView.collectionViewLayout as? UICollectionViewFlowLayout
+            let description = book.title
+            let textView = self.defaultCover(layout: flowLayout, description: description)
+            cell.coverImageView.image = UIImage.imageWithTextView(textView: textView)
+        }
+    }
+    
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "publicationCollectionViewCell", for: indexPath) as! PublicationCollectionViewCell
         cell.coverImageView.image = nil
@@ -665,18 +675,34 @@ extension LibraryViewController: UICollectionViewDelegateFlowLayout, UICollectio
             cell.sampleRibbonImageView.isHidden = true
         }
         
-        // Load image and then apply the shadow.
-        if
-            let coverURL = book.cover,
-            let data = try? Data(contentsOf: coverURL.url),
-            let cover = UIImage(data: data)
-        {
-            cell.coverImageView.image = cover
+        if let isReading = book.isReading, isReading == true {
+            cell.currentlyReadingLabel.isHidden = false
         } else {
-            let flowLayout = collectionView.collectionViewLayout as? UICollectionViewFlowLayout
-            let description = book.title
-            let textView = defaultCover(layout: flowLayout, description: description)
-            cell.coverImageView.image = UIImage.imageWithTextView(textView: textView)
+            cell.currentlyReadingLabel.isHidden = true
+        }
+        
+        if let bookurl = book.url, bookurl.count > 0 {
+            cell.cloudDownloadImageView.isHidden = true
+        } else {
+            cell.cloudDownloadImageView.isHidden = false
+            cell.cloudDownloadImageView.layer.cornerRadius = 4.0
+        }
+        
+        // Load image and then apply the shadow.
+        if let coverPath = book.coverPath,
+           let url = URL(string: coverPath) {
+            URLSession.shared.dataTask(with: url) { (data, response, error) in
+                if let imageData = data,
+                let img = UIImage(data: imageData) {
+                    DispatchQueue.main.async {
+                        cell.coverImageView.image = img
+                    }
+                } else {
+                    self.setTextImageOnCell(collectionView, book, cell)
+                }
+            }.resume()
+        } else {
+            setTextImageOnCell(collectionView, book, cell)
         }
 
         return cell
@@ -714,13 +740,69 @@ extension LibraryViewController: UICollectionViewDelegateFlowLayout, UICollectio
 
             let book = books[indexPath.item]
 
-            do {
-                guard let pub = try await library.openBook(book, sender: self) else {
-                    return
+            if let bookurl = book.url, bookurl.count > 0 {
+                do {
+                    guard let pub = try await library.openBook(book, sender: self) else {
+                        return
+                    }
+                    libraryDelegate.libraryDidSelectPublication(pub, book: book)
+                } catch {
+                    libraryDelegate.presentError(UserError(error), from: self)
                 }
-                libraryDelegate.libraryDidSelectPublication(pub, book: book)
-            } catch {
-                libraryDelegate.presentError(UserError(error), from: self)
+            } else if let bookid = book.bookId, bookid > 0 {
+                // download book
+                let userId = UserDefaults.standard.value(forKey: "user_id")
+                if let user_id = userId as? String, user_id.count > 0 {
+                    let url = URL(string: APILink.BASE_URL + APILink.DOWNLOAD_BOOK)!
+                    var request = URLRequest(url: url)
+                    request = SharedFunctions.setRequestHeader(request: request, method: "POST")
+                    let uuid = UIDevice.current.identifierForVendor?.uuidString ?? ""
+                    let postString = "customer_id=\(userId!)&uuid=\(uuid)&book_id=\(bookid)&device_type=iOS"
+                    request.httpBody = postString.data(using: .utf8)
+                    toast("Downloading book", on: self.view, duration: 2)
+                    let task = URLSession.shared.dataTask(with: request) { data, response, error in
+                        guard let data = data,
+                            let response = response as? HTTPURLResponse,
+                            error == nil else {
+                            print("error", error ?? "Unknown error")
+                            self.startStopRefresh(shouldStart: false, toastMessege: "Error fetching records")
+                            return
+                        }
+
+                        guard (200 ... 299) ~= response.statusCode else {
+                            print("statusCode should be 2xx, but is \(response.statusCode)")
+                            print("response = \(response)")
+                            self.startStopRefresh(shouldStart: false, toastMessege: "Error fetching books")
+                            return
+                        }
+                        
+                        // Save to local file
+                        let fileManager = FileManager.default
+                        let docsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+                        var fileURL = docsURL.appendingPathComponent("tmpFile.epub")
+                        if let mimeType = response.mimeType,
+                           mimeType.count > 0,
+                           mimeType.contains("pdf") {
+                            fileURL = docsURL.appendingPathComponent("tmpFile")
+                        }
+                        do {
+                            try data.write(to: fileURL, options: .atomic)
+                            if let aburl = fileURL.absoluteURL {
+                                Task {
+                                    try await self.library.updateBookRecord(for: bookid, from: aburl, sender: self) { progress in
+                                        print("progress: ", progress)
+                                    }
+                                }
+                            }
+                            self.startStopRefresh(shouldStart: false, toastMessege: "Book downloaded")
+                        } catch let error as NSError {
+                            print(error)
+                            self.startStopRefresh(shouldStart: false)
+                        }
+                    }
+                    self.startStopRefresh(shouldStart: true)
+                    task.resume()
+                }
             }
         }
     }
@@ -745,9 +827,13 @@ extension LibraryViewController: PublicationCollectionViewCellDelegate {
         let removeAction = UIAlertAction(title: NSLocalizedString("remove_button", comment: "Button to confirm the deletion of a publication"), style: .destructive, handler: { _ in
             Task {
                 do {
-                    try await self.library.remove(book)
+                    let result = try await self.library.remove(book)
                     if let isSample = book.isSample, isSample {
                         self.removeBookFromCloudLibrary(book: book)
+                    } else if result {
+                        DispatchQueue.main.async {
+                            toast("Removed book from device", on: self.view, duration: 2)
+                        }
                     }
                 } catch {
                     self.libraryDelegate?.presentError(UserError(error), from: self)

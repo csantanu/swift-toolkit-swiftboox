@@ -118,12 +118,13 @@ class VisualReaderViewController<N: UIViewController & Navigator>: ReaderViewCon
     }
 
     override func makeNavigationBarButtons() -> [UIBarButtonItem] {
-        var buttons: [UIBarButtonItem] = super.makeNavigationBarButtons()
+        let buttons: [UIBarButtonItem] = super.makeNavigationBarButtons()
 
+        // TTS not up to the mark, hence not needed
         // Text to speech
-        if let ttsViewModel = ttsViewModel {
+        /*if let ttsViewModel = ttsViewModel {
             buttons.append(UIBarButtonItem(image: UIImage(systemName: "speaker.wave.2.fill"), style: .plain, target: ttsViewModel, action: #selector(TTSViewModel.start)))
-        }
+        }*/
 
         return buttons
     }

@@ -14,6 +14,7 @@ class APILink {
 //    static let SITE_URL = "https://swiftboox.app/controlcenter/"
 //    static let SITE_URL = "http://139.59.78.111/laravel/index.php/api/"
     static let SITE_URL = "https://swiftboox.app/laravel/index.php/api/"
+    static let COVER_PATH = "https://swiftboox.app/laravel/resources/assets/images/product_images/"
     static let CONSUMER_KEY = "7317b3421578662816a7ca806a"
     static let CONSUMER_SECRET = "a54e136d15786628168150910e"
     static let ONE_SIGNAL_APP_ID = "0b168cbe-e74a-4a3b-b36a-e27edafa17db"
@@ -31,6 +32,7 @@ class APILink {
     
     static let LOGIN = "processlogin"
     static let GET_CUSTOMER_BOOKS = "getcustomersbookrecords"
+    static let DOWNLOAD_BOOK = "getcustomersbookrecordsdetail"
     static let REMOVE_BOOK = "removecustomersbooks"
 }
 

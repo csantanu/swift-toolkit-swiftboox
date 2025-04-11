@@ -17,6 +17,8 @@ protocol PublicationCollectionViewCellDelegate: AnyObject {
 class PublicationCollectionViewCell: UICollectionViewCell {
     @IBOutlet var coverImageView: UIImageView!
     @IBOutlet weak var sampleRibbonImageView: UIImageView!
+    @IBOutlet weak var cloudDownloadImageView: UIImageView!
+    @IBOutlet var currentlyReadingLabel: UILabel!
     @IBOutlet var titleLabel: UILabel!
     @IBOutlet var authorLabel: UILabel!
 

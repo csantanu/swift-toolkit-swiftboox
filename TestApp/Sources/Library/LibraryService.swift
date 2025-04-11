@@ -38,7 +38,14 @@ final class LibraryService: Loggable {
         guard try checkIsReadable(publication: pub) else {
             return nil
         }
+        if let bookId = book.bookId {
+            try await makeBookCurrentlyReading(bookId)
+        }
         return pub
+    }
+    
+    private func makeBookCurrentlyReading(_ bookId: Int) async throws {
+        try await books.setCurrentlyReading(for: bookId)
     }
 
     /// Opens the Readium 2 Publication at the given `url`.
@@ -77,6 +84,128 @@ final class LibraryService: Loggable {
     }
 
     // MARK: Importation
+    
+    func insertAllBookData(isSamples: [Bool] = [],
+                           bookIds: [Int] = [],
+                           bookTitles: [String] = [],
+                           bookCovers: [String] = [],
+                           sender: UIViewController,
+                           completion: @escaping (Bool) -> Void = { _ in }) async throws {
+        var bookIds = bookIds
+        guard let bookId = bookIds.popFirst() else {
+            completion(true)
+            return
+        }
+        var isSamples = isSamples
+        guard let isSample = isSamples.popFirst() else {
+            return
+        }
+        var bookTitles = bookTitles
+        guard let bookTitle = bookTitles.popFirst() else {
+            return
+        }
+        var bookCovers = bookCovers
+        guard let bookCover = bookCovers.popFirst() else {
+            return
+        }
+        try await insertSingleBookData(isSample: isSample, bookId: bookId, bookTitle: bookTitle, bookCover: bookCover, sender: sender) { status in
+            if status {
+                Task {
+                    do {
+                        try await self.insertAllBookData(isSamples: isSamples,
+                                                         bookIds: bookIds,
+                                                         bookTitles: bookTitles,
+                                                         bookCovers: bookCovers,
+                                                         sender: sender,
+                                                         completion: completion)
+                    } catch {
+                        
+                    }
+                }
+            } else {
+                completion(false)
+            }
+        }
+    }
+    
+    func insertSingleBookData(isSample: Bool,
+                              bookId: Int,
+                              bookTitle: String,
+                              bookCover: String,
+                              sender: UIViewController,
+                              completion: @escaping (Bool) -> Void = { _ in }) async throws {
+        let book = Book(
+            identifier: "\(bookId)",
+            title: bookTitle,
+            type: "",
+            url: "",
+            coverPath: bookCover,
+            isSample: isSample,
+            bookId: bookId
+        )
+
+        do {
+            try await books.add(book)
+            completion(true)
+//            return book
+        } catch {
+            throw LibraryError.importFailed(error)
+        }
+    }
+    
+    func updateBookRecord (
+        for bookId: Int,
+        from url: AbsoluteURL,
+        sender: UIViewController,
+        progress: @escaping (Double) -> Void
+    ) async throws {
+        // Necessary to read URL exported from the Files app, for example.
+        let shouldRelinquishAccess = url.url.startAccessingSecurityScopedResource()
+        defer {
+            if shouldRelinquishAccess {
+                url.url.stopAccessingSecurityScopedResource()
+            }
+        }
+
+        var url = url
+        if let file = url.fileURL {
+            url = try await fulfillIfNeeded(file, progress: progress)
+        }
+
+        let (pub, format) = try await openPublication(at: url, allowUserInteraction: false, sender: sender)
+
+        if let file = url.fileURL {
+            url = try moveToDocuments(
+                from: file,
+                title: pub.metadata.title ?? file.lastPathSegment,
+                format: format
+            )
+        }
+
+        _ = try await updateBook(for: bookId, at: url, publication: pub, mediaType: format.mediaType)
+    }
+    
+    private func updateBook(for bookId: Int, at url: AbsoluteURL, publication: Publication, mediaType: MediaType?) async throws -> Bool {
+        // Makes the URL relative to the Documents/ folder if possible.
+        let url: AnyURL = Paths.library.relativize(url)?.anyURL ?? url.anyURL
+
+        let book = Book(
+            identifier: publication.metadata.identifier,
+            title: publication.metadata.title ?? url.lastPathSegment ?? "Untitled",
+            authors: publication.metadata.authors
+                .map(\.name)
+                .joined(separator: ", "),
+            type: mediaType?.string ?? MediaType.binary.string,
+            url: url.string
+        )
+
+        do {
+            let success = try await books.update(for: bookId, book)
+            return success
+        } catch {
+            throw LibraryError.importFailed(error)
+        }
+    }
 
     /// Imports a bunch of publications.
     func importPublications(from sourceURLs: [URL], sender: UIViewController) async throws {
@@ -188,7 +317,7 @@ final class LibraryService: Loggable {
                 .map(\.name)
                 .joined(separator: ", "),
             type: mediaType?.string ?? MediaType.binary.string,
-            url: url,
+            url: url.string,
             coverPath: coverPath
         )
 
@@ -202,19 +331,37 @@ final class LibraryService: Loggable {
 
     // MARK: Removing
 
-    func remove(_ book: Book) async throws {
-        guard let id = book.id else {
-            throw LibraryError.bookDeletionFailed(nil)
+    func remove(_ book: Book) async throws -> Bool {
+//        guard let id = book.id else {
+//            throw LibraryError.bookDeletionFailed(nil)
+//        }
+        if book.bookId == nil {
+            return false
         }
 
         do {
-            try await books.remove(id)
-            if let file = try book.absoluteURL().fileURL {
+            // remove the file from path
+            if let bookurl = book.url, bookurl.count > 0,
+               let file = try book.absoluteURL().fileURL {
                 try removeBookFile(at: file)
             }
+            // remove the book entry from DB
+            let result = try await books.removeBookEntryFromDataBase(book)
+            return result
         } catch {
-            throw LibraryError.bookDeletionFailed(error)
+            return false
+            // throw LibraryError.bookDeletionFailed(error)
         }
+    }
+    
+    func clearAllFilesAndDataBase(bookArray: [Book]) async throws {
+        for book in bookArray {
+            if let bookurl = book.url, bookurl.count > 0,
+               let file = try book.absoluteURL().fileURL {
+                try removeBookFile(at: file)
+            }
+        }
+        try await books.removeAll()
     }
 
     private func removeBookFile(at url: FileURL) throws {
@@ -231,7 +378,10 @@ final class LibraryService: Loggable {
 
 private extension Book {
     func absoluteURL() throws -> AbsoluteURL {
-        guard let url = AnyURL(string: url) else {
+        guard let urlStr = url else {
+            throw LibraryError.bookNotFound
+        }
+        guard let url = AnyURL(string: urlStr) else {
             throw LibraryError.bookNotFound
         }
 

@@ -18,6 +18,7 @@ struct AboutView: View {
     @State private var presenLogoutConfirmation = false
     @State private var presenCantLogout = false
     @State private var showAccountSection = false
+    @State var showLoggedOutAlert = false
     
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -52,6 +53,9 @@ struct AboutView: View {
         } message: {
             Text("Library refresh is in progress. Can't log out now. Try after refreshing is done.")
         }
+        .alert("Logged out", isPresented: $showLoggedOutAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {}
         .onReceive(NotificationCenter.default.publisher(for: .reloadAboutTableNotification, object: nil)) { _ in
             showAccountSection = true
         }

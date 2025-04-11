@@ -54,7 +54,7 @@
 /* Remove confirmation alert when the user deletes a publication */
 "library_delete_alert_title" = "Are you sure?";
 //"library_delete_alert_message" = "This will remove the Publication from your library.";
-"library_delete_alert_message" = "This will remove the book from your device but not from your cloud library. You can refresh anytime to get back books deleted from device.";
+"library_delete_alert_message" = "This will remove the book from your device but not from your cloud library, you can download it again";
 "library_delete_alert_message_sample" = "This will remove the sample book from your library.";
 
 

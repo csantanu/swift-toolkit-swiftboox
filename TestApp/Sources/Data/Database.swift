@@ -29,10 +29,13 @@ final class Database {
                 t.column("type", .text).notNull()
                 t.column("url", .text).notNull()
                 t.column("coverPath", .text)
+                t.column("isSample", .text)
+                t.column("isReading", .text)
                 t.column("locator", .text)
                 t.column("progression", .integer).notNull().defaults(to: 0)
                 t.column("created", .datetime).notNull()
                 t.column("preferencesJSON", .text)
+                t.column("bookId", .text)
             }
 
             try db.create(table: "bookmark") { t in
