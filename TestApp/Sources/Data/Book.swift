@@ -66,7 +66,7 @@ struct Book: Codable {
         preferencesJSON: String? = nil,
         isSample: Bool? = false,
         isReading: Bool? = false,
-        updatedAt: Date? = nil,
+        updatedAt: Date = Date(),
         bookId: Int? = 0
     ) {
         self.id = id

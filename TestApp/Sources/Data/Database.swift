@@ -31,7 +31,7 @@ final class Database {
                 t.column("coverPath", .text)
                 t.column("isSample", .text)
                 t.column("isReading", .text)
-                t.column("updatedAt", .text)
+                t.column("updatedAt", .datetime)
                 t.column("locator", .text)
                 t.column("progression", .integer).notNull().defaults(to: 0)
                 t.column("created", .datetime).notNull()

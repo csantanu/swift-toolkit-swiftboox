@@ -347,6 +347,34 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
     func loadBooks (userBookDataArray: Array<Any>) {
         DispatchQueue.main.async {
             self.startStopRefresh(shouldStart: true)
+            
+            // remove deleted books
+            
+            for book in self.books {
+                if let userBookDataArray = userBookDataArray as? [[String: Any]] {
+                    let exists = userBookDataArray.contains { dict in
+                        if let id = dict["id"] as? Int {
+                            return id == book.bookId
+                        }
+                        return false
+                    }
+                    if exists {
+                        // print("Book with ID \(book.bookId) exists.")
+                    } else {
+                        // print("Book \(book.title) not found.")
+                        Task {
+                            do {
+                                _ = try await self.library.remove(book)
+                            } catch {
+                                print(error)
+                            }
+                        }
+                    }
+                }
+            }
+            
+            // download new books
+            
             var isSampleArray : [Bool] = []
             var bookIdArray : [Int] = []
             var bookTitleArray : [String] = []
@@ -432,13 +460,14 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
                             } else {
                                 self.isRetrying = false
                                 print("books download completed with errors")
-                                toast("Completed syncing with errors", on: self.view, duration: 2)
-                                self.startStopRefresh(shouldStart: false)
+                                self.startStopRefresh(shouldStart: false, toastMessege: "Completed syncing with errors")
                             }
                         }
                     }
                 } catch {
-                    
+                    self.isRetrying = false
+                    print("books download completed with errors")
+                    self.startStopRefresh(shouldStart: false, toastMessege: "Completed syncing with errors")
                 }
             }
         }
