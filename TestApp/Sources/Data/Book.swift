@@ -41,8 +41,12 @@ struct Book: Codable {
     
     /// If publication is a smaple type
     let isSample: Bool?
+    
     /// If publication is a smaple type
     let isReading: Bool?
+    
+    /// Last updated (downloaded / read) time of the book
+    let updatedAt: Date?
     
     /// Publication ID retrieved from server
     let bookId: Int?
@@ -62,6 +66,7 @@ struct Book: Codable {
         preferencesJSON: String? = nil,
         isSample: Bool? = false,
         isReading: Bool? = false,
+        updatedAt: Date? = nil,
         bookId: Int? = 0
     ) {
         self.id = id
@@ -77,6 +82,7 @@ struct Book: Codable {
         self.preferencesJSON = preferencesJSON
         self.isSample = isSample
         self.isReading = isReading
+        self.updatedAt = updatedAt
         self.bookId = bookId
     }
 
@@ -99,7 +105,7 @@ struct Book: Codable {
 
 extension Book: TableRecord, FetchableRecord, PersistableRecord {
     enum Columns: String, ColumnExpression {
-        case id, identifier, title, type, url, coverPath, locator, progression, created, preferencesJSON
+        case id, identifier, title, type, url, coverPath, updatedAt, locator, progression, created, preferencesJSON
     }
 }
 
@@ -124,7 +130,7 @@ final class BookRepository {
 
     func all() -> AnyPublisher<[Book], Error> {
         db.observe { db in
-            try Book.order(Book.Columns.created).fetchAll(db)
+            try Book.order(Book.Columns.updatedAt).fetchAll(db).reversed()
         }
     }
 
@@ -136,15 +142,15 @@ final class BookRepository {
         }
     }
     
-    func update(for bookId: Int, _ book: Book) async throws -> Bool {
+    func update(for bookId: Int, _ book: Book) async throws {
         try await db.write { db in
             try db.execute(literal: """
                 UPDATE book
-                   SET url = \(book.url), type = \(book.type), authors = \(book.authors)
+                   SET url = \(book.url), type = \(book.type), authors = \(book.authors), updatedAt = CURRENT_TIMESTAMP
                  WHERE bookId = \(bookId)
             """)
             // return Book.Id(rawValue: db.lastInsertedRowID)
-            return Book.Id(rawValue: db.lastInsertedRowID).rawValue == bookId
+            // return Book.Id(rawValue: db.lastInsertedRowID).rawValue == bookId
         }
     }
     
@@ -152,7 +158,7 @@ final class BookRepository {
         try await db.write { db in
             try db.execute(literal: """
                 UPDATE book
-                   SET isReading = (bookId = \(bookId))
+                   SET isReading = (bookId = \(bookId)), updatedAt = CASE WHEN bookId = \(bookId) THEN CURRENT_TIMESTAMP ELSE updatedAt END
             """)
         }
     }

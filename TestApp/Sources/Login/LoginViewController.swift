@@ -125,10 +125,6 @@ class LoginViewController: UIViewController, UITextFieldDelegate {
                                             self.registerDevice()
                                         }
                                         
-                                        // refresh library
-                                        if (self.delegate != nil) {
-                                            self.delegate?.refreshLibrary()
-                                        }
                                         // show logout
                                         NotificationCenter.default.post(name: Notification.Name(rawValue: "reloadAboutTableNotification"), object: nil, userInfo: ["controller" : self])
                                     }
@@ -185,6 +181,10 @@ class LoginViewController: UIViewController, UITextFieldDelegate {
         isVirtual = 1
 #endif
         
+#if DEBUG
+        isVirtual = 0
+#endif
+        
         let postString = "device_type=iOS&customers_id=\(userId)&device_id=\(uuid)&uuid=\(uuid)&app_version=\(app_version)&ram=\(ram) GB&processor=\(processor)&device_os=\(device_os)&device_model=\(device_model)&manufacturer=Apple&serial=NA&isVirtual=\(isVirtual)&isRooted=0"
         
         let registerDeviceUrl = URL(string: APILink.BASE_URL + APILink.REGISTER_DEVICE)!
@@ -211,6 +211,11 @@ class LoginViewController: UIViewController, UITextFieldDelegate {
             do {
                 let parsedData = try JSONSerialization.jsonObject(with: data) as! [String:Any]
                 print(parsedData)
+                
+                // refresh library
+                if (self.delegate != nil) {
+                    self.delegate?.refreshLibrary()
+                }
             } catch let error as NSError {
                 print(error)
             }

@@ -138,30 +138,37 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
 
     override func viewWillLayoutSubviews() {
         super.viewWillLayoutSubviews()
-
-        let idiom = { () -> UIUserInterfaceIdiom in
-            let tempIdion = UIDevice.current.userInterfaceIdiom
-            return (tempIdion != .pad) ? .phone : .pad // ignnore carplay and others
-        }()
-
-        let layoutNumberPerRow: [UIUserInterfaceIdiom: [ScreenOrientation: Int]] = [
-            .pad: LibraryViewController.iPadLayoutNumberPerRow,
-            .phone: LibraryViewController.iPhoneLayoutNumberPerRow,
-        ]
-
-        guard let deviceLayoutNumberPerRow = layoutNumberPerRow[idiom] else { return }
-        guard let numberPerRow = deviceLayoutNumberPerRow[.current] else { return }
-
+        
         guard let flowLayout = collectionView.collectionViewLayout as? UICollectionViewFlowLayout else { return }
-        let contentWith = collectionView.collectionViewLayout.collectionViewContentSize.width
+        let screenWidth = view.bounds.width
+        // print("screenWidth: \(screenWidth)")
+        let screenHeight = view.bounds.height
+        let isPortrait = screenHeight >= screenWidth
+        let isPad = UIDevice.current.userInterfaceIdiom == .pad
+        
+        var itemWidth: CGFloat = 0.0
+        
+        if isPad {
+            if isPortrait {
+                // iPad Portrait
+                itemWidth = screenWidth < 800.0 ? 160.0 : 180.0
+            } else {
+                // iPad Landscape
+                itemWidth = screenHeight < 800.0 ? 160.0 : 180.0
+            }
+        } else {
+            if isPortrait {
+                // iPhone Portrait
+                itemWidth = screenWidth < 380.0 ? 100.0 : screenWidth < 420.0 ? 110.0 : 120.0
+            } else {
+                // iPhone Landscape
+                itemWidth = 140.0
+            }
+        }
+        // print("itemWidth: \(itemWidth)")
 
-        let minimumSpacing = CGFloat(5)
-        let width = (contentWith - CGFloat(numberPerRow - 1) * minimumSpacing) / CGFloat(numberPerRow)
-        let height = width * 1.9
-
-        flowLayout.minimumLineSpacing = minimumSpacing * 2
-        flowLayout.minimumInteritemSpacing = minimumSpacing
-        flowLayout.itemSize = CGSize(width: width, height: height)
+        flowLayout.itemSize = CGSize(width: itemWidth, height: (itemWidth * 1.9))
+        flowLayout.invalidateLayout() // Refresh the layout
     }
     
     func setRightBarButton() {
@@ -317,7 +324,7 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
         
         var userBookDataArray : Array<Any> = []
         
-        for item in customersbooks_data.reversed() {
+        for item in customersbooks_data {
             // print("refreshBooks: \(item)")
             if let obj = item as? [String:Any] {
                 var elemet : [String:Any] = [:]
@@ -789,12 +796,17 @@ extension LibraryViewController: UICollectionViewDelegateFlowLayout, UICollectio
                             try data.write(to: fileURL, options: .atomic)
                             if let aburl = fileURL.absoluteURL {
                                 Task {
-                                    try await self.library.updateBookRecord(for: bookid, from: aburl, sender: self) { progress in
-                                        print("progress: ", progress)
+                                    do {
+                                        try await self.library.updateBookRecord(for: bookid, from: aburl, sender: self) { progress in
+                                            print("progress: ", progress)
+                                        }
+                                        await self.startStopRefresh(shouldStart: false, toastMessege: "Book downloaded")
+                                    } catch {
+                                        print(error)
+                                        await self.startStopRefresh(shouldStart: false, toastMessege: "Book download failed")
                                     }
                                 }
                             }
-                            self.startStopRefresh(shouldStart: false, toastMessege: "Book downloaded")
                         } catch let error as NSError {
                             print(error)
                             self.startStopRefresh(shouldStart: false)

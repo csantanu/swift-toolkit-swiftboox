@@ -182,10 +182,10 @@ final class LibraryService: Loggable {
             )
         }
 
-        _ = try await updateBook(for: bookId, at: url, publication: pub, mediaType: format.mediaType)
+        try await updateBook(for: bookId, at: url, publication: pub, mediaType: format.mediaType)
     }
     
-    private func updateBook(for bookId: Int, at url: AbsoluteURL, publication: Publication, mediaType: MediaType?) async throws -> Bool {
+    private func updateBook(for bookId: Int, at url: AbsoluteURL, publication: Publication, mediaType: MediaType?) async throws {
         // Makes the URL relative to the Documents/ folder if possible.
         let url: AnyURL = Paths.library.relativize(url)?.anyURL ?? url.anyURL
 
@@ -200,8 +200,7 @@ final class LibraryService: Loggable {
         )
 
         do {
-            let success = try await books.update(for: bookId, book)
-            return success
+            try await books.update(for: bookId, book)
         } catch {
             throw LibraryError.importFailed(error)
         }
