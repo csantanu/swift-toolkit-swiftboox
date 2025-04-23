@@ -34,6 +34,11 @@ class APILink {
     static let GET_CUSTOMER_BOOKS = "getcustomersbookrecords"
     static let DOWNLOAD_BOOK = "getcustomersbookrecordsdetail"
     static let REMOVE_BOOK = "removecustomersbooks"
+    
+    static let LOGIN_2 = "processloginapp"
+    static let GET_CUSTOMER_BOOKS_2 = "test-getcustomersbookrecords"
+    static let DOWNLOAD_BOOK_2 = "test-getcustomersbookrecordsdetail"
+    static let REMOVE_BOOK_2 = "test-removecustomersbooks"
 }
 
 class SharedFunctions {

@@ -56,16 +56,17 @@ class LoginViewController: UIViewController, UITextFieldDelegate {
             return
         }
         
+        let uuid = UIDevice.current.identifierForVendor?.uuidString ?? ""
         var postString = ""
         if let email = emailTextField.text, let pass = passwordTextField.text {
             if (email.count > 0 && pass.count > 0) {
-                postString = "email=\(email)&password=\(pass)&isPWA=0"
+                postString = "email=\(email)&password=\(pass)&device_id=\(uuid)"
             } else { return }
         } else { return }
         
         let hideActivity = toastActivity(on: view)
         
-        let loginUrl = URL(string: APILink.BASE_URL + APILink.LOGIN)!
+        let loginUrl = URL(string: APILink.BASE_URL + APILink.LOGIN_2)!
         var request = URLRequest(url: loginUrl)
         request = SharedFunctions.setRequestHeader(request: request, method: "POST")
         // postString = "email=test1@test.com&password=12345"

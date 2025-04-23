@@ -25,6 +25,7 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
     var factory: Factory!
     private var books: [Book] = []
     var isRetrying : Bool = false
+    var isAutoRefreshing : Bool = false
 
     weak var lastFlippedCell: PublicationCollectionViewCell?
 
@@ -116,6 +117,9 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
         )
         
         super.viewDidAppear(animated)
+        
+        isAutoRefreshing = true
+        refreshLibrary()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
@@ -238,7 +242,10 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
 //          UserDefaults.standard.setValue(nil, forKey: "user_id")
         
         if (!Reachability.isConnectedToNetwork()) {
-            toast("Network connection problem", on: self.view, duration: 2)
+            if !self.isAutoRefreshing {
+                toast("Network connection problem", on: self.view, duration: 2)
+                self.isAutoRefreshing = false
+            }
             return
         }
         
@@ -270,7 +277,9 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
         let uuid = UIDevice.current.identifierForVendor?.uuidString ?? ""
         let postString = "customer_id=\(userId!)&uuid=\(uuid)"
         request.httpBody = postString.data(using: .utf8)
-        toast("Fetching your books", on: self.view, duration: 2)
+        if !isAutoRefreshing {
+            toast("Fetching your books", on: self.view, duration: 2)
+        }
         let task = URLSession.shared.dataTask(with: request) { data, response, error in
             guard let data = data,
                 let response = response as? HTTPURLResponse,
@@ -296,6 +305,10 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
                         self.startStopRefresh(shouldStart: false, toastMessege: "You have no purchased books")
                         return
                     } else if (customersbooks_data.count == self.books.count) {
+                        if self.isAutoRefreshing {
+                            self.startStopRefresh(shouldStart: false)
+                            return
+                        }
                         let alert = UIAlertController(title: "Confirm Resync", message: "Your library is already synched. Are you sure you want to synch again?", preferredStyle: .alert)
                         alert.addAction(UIAlertAction(title: NSLocalizedString("confirm_button", comment: ""), style: .default, handler: { _ in self.buildBooksList(customersbooks_data: customersbooks_data) }))
                         alert.addAction(UIAlertAction(title: NSLocalizedString("cancel_button", comment: ""), style: .default, handler: { _ in
@@ -385,6 +398,7 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
                     var bookTitle = ""
                     var bookCover = ""
                     guard let bookId = obj["id"] as? Int else {
+                        self.isAutoRefreshing = false
                         toast("Sync error", on: self.view, duration: 2)
                         return
                     }
@@ -440,7 +454,7 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
             }
             
             self.isRetrying = false
-            self.startStopRefresh(shouldStart: false)
+//            self.startStopRefresh(shouldStart: false)
             
             Task {
                 do {
@@ -608,13 +622,18 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
     
     func startStopRefresh(shouldStart start:Bool, toastMessege: String? = nil) {
         DispatchQueue.main.async {
-            if let toastMessege = toastMessege {
-                toast(toastMessege, on: self.view, duration: 2)
+            if !self.isAutoRefreshing {
+                if let toastMessege = toastMessege {
+                    toast(toastMessege, on: self.view, duration: 2)
+                }
+                if let appdel = UIApplication.shared.delegate as? AppDelegate {
+                    appdel.isRefreshingLibrary = start
+                }
+            }
+            if !start {
+                self.isAutoRefreshing = false
             }
             self.showRefreshLoader(status: start)
-            if let appdel = UIApplication.shared.delegate as? AppDelegate {
-                appdel.isRefreshingLibrary = start
-            }
         }
     }
 }

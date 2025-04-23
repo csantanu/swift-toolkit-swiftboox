@@ -103,6 +103,14 @@ struct Book: Codable {
     }
 }
 
+struct BookCloud {
+    var isSample: Bool?
+    var bookId: Int?
+    var bookTitle: String?
+    var bookCover: String?
+    // TODO: to replace sample, id, title, cover arrays
+}
+
 extension Book: TableRecord, FetchableRecord, PersistableRecord {
     enum Columns: String, ColumnExpression {
         case id, identifier, title, type, url, coverPath, updatedAt, locator, progression, created, preferencesJSON
