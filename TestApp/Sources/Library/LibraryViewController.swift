@@ -115,15 +115,27 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
             name: .removeAllBooksNotification,
             object: nil
         )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(checkLoginAndStartRefresh(_:)),
+            name: .reloadAboutTableNotification,
+            object: nil
+        )
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(checkLoginAndStartRefresh(_:)),
+            name: UIApplication.willEnterForegroundNotification,
+            object: nil
+        )
         
         super.viewDidAppear(animated)
         
-        isAutoRefreshing = true
-        refreshLibrary()
+        autoRefreshLibrary()
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         lastFlippedCell?.flipMenu()
+        // NotificationCenter.default.removeObserver(self)
         super.viewWillDisappear(animated)
     }
 
@@ -145,7 +157,6 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
         
         guard let flowLayout = collectionView.collectionViewLayout as? UICollectionViewFlowLayout else { return }
         let screenWidth = view.bounds.width
-        // print("screenWidth: \(screenWidth)")
         let screenHeight = view.bounds.height
         let isPortrait = screenHeight >= screenWidth
         let isPad = UIDevice.current.userInterfaceIdiom == .pad
@@ -169,15 +180,13 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
                 itemWidth = 140.0
             }
         }
-        // print("itemWidth: \(itemWidth)")
 
         flowLayout.itemSize = CGSize(width: itemWidth, height: (itemWidth * 1.9))
         flowLayout.invalidateLayout() // Refresh the layout
     }
     
     func setRightBarButton() {
-        let userId = UserDefaults.standard.value(forKey: "user_id")
-        if (userId as? String) != nil {
+        if TokenManager.shared.isLoggedIn {
             self.navigationItem.rightBarButtonItem = refreshLibraryButton
         } else {
             self.navigationItem.rightBarButtonItem = loginButton
@@ -239,24 +248,17 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
     }
     
     @objc func refreshLibrary() {
-//          UserDefaults.standard.setValue(nil, forKey: "user_id")
-        
         if (!Reachability.isConnectedToNetwork()) {
             if !self.isAutoRefreshing {
                 toast("Network connection problem", on: self.view, duration: 2)
+            }else {
                 self.isAutoRefreshing = false
             }
             return
         }
         
-        let userId = UserDefaults.standard.value(forKey: "user_id")
-        if let user_id = userId as? String {
-            DispatchQueue.main.async {
-                self.refreshBooks(userId: user_id)
-            }
-            setUserProfilePicture()
-        } else { // invoke login
-            
+        DispatchQueue.main.async {
+            self.refreshBooks()
         }
     }
     
@@ -268,19 +270,29 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
         self.navigationController?.present(nav, animated: true, completion: {})
     }
     
-    func refreshBooks (userId: String?) {
+    func refreshBooks () {
         startStopRefresh(shouldStart: true)
         let url = URL(string: APILink.BASE_URL + APILink.GET_CUSTOMER_BOOKS)!
         var request = URLRequest(url: url)
         request = SharedFunctions.setRequestHeader(request: request, method: "POST")
-        if (userId == nil) {return}
         let uuid = UIDevice.current.identifierForVendor?.uuidString ?? ""
-        let postString = "customer_id=\(userId!)&uuid=\(uuid)"
+        guard let access_token = TokenManager.shared.getAccessToken() else {
+            startStopRefresh(shouldStart: false)
+            return
+        }
+        let postString = "access_token=\(access_token)&uuid=\(uuid)"
         request.httpBody = postString.data(using: .utf8)
         if !isAutoRefreshing {
             toast("Fetching your books", on: self.view, duration: 2)
         }
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+        let config = URLSessionConfiguration.default
+        config.protocolClasses = [AuthURLProtocol.self]
+        AuthURLProtocol.requestBodyString = postString
+        AuthURLProtocol.libraryVC = self
+        let session = URLSession(configuration: config)
+        print("\noriginal library refresh url: ", url)
+        print("original library refresh postString: ", postString)
+        let task = session.dataTask(with: request) { data, response, error in
             guard let data = data,
                 let response = response as? HTTPURLResponse,
                 error == nil else {
@@ -298,9 +310,10 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
             
             do {
                 let parsedData = try JSONSerialization.jsonObject(with: data) as! [String:Any]
-                print(parsedData)
+                // print("parsedData: ", parsedData)
+                print("\nlibrary data parsed successfully")
                 if let customersbooks_data = parsedData["customersbooks_data"] as? Array<Any> {
-                    print("total books found: \(customersbooks_data.count)")
+                    print("\ntotal books found: \(customersbooks_data.count)")
                     if (customersbooks_data.count == 0) {
                         self.startStopRefresh(shouldStart: false, toastMessege: "You have no purchased books")
                         return
@@ -331,8 +344,10 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
     }
     
     func buildBooksList(customersbooks_data: Array<Any>) {
-        DispatchQueue.main.async {
-            toast("Syncing library with \(customersbooks_data.count) books", on: self.view, duration: 3)
+        if !self.isAutoRefreshing {
+            DispatchQueue.main.async {
+                toast("Syncing library with \(customersbooks_data.count) books", on: self.view, duration: 2)
+            }
         }
         
         var userBookDataArray : Array<Any> = []
@@ -465,7 +480,7 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
                                                              sender: self) { result in
                         if result {
                             self.isRetrying = false
-                            print("books data fetching completed succesfully")
+                            print("books data fetching completed successfully")
                             self.startStopRefresh(shouldStart: false, toastMessege: "Completed syncing your books")
                         } else {
                             if (!self.isRetrying) {
@@ -497,8 +512,19 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
         }
     }
     
+    fileprivate func autoRefreshLibrary() {
+        if TokenManager.shared.isLoggedIn {
+            isAutoRefreshing = true
+            refreshLibrary()
+        }
+    }
+    
     fileprivate func removeProfilePicture() {
         self.navigationItem.leftBarButtonItem = nil
+    }
+    
+    @objc func checkLoginAndStartRefresh (_ notification: Notification) {
+        autoRefreshLibrary()
     }
     
     @objc func removeAllBooksNotificationHandler (_ notification: Notification) {
@@ -507,7 +533,7 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
         }
         removeProfilePicture()
         setRightBarButton()
-        if let aboutView = notification.userInfo?["controller"] as? AboutView{
+        if let aboutView = notification.userInfo?["controller"] as? AboutView {
             DispatchQueue.main.async {
                 aboutView.showLoggedOutAlert = true
             }
@@ -515,7 +541,7 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
     }
     
     func removeBookFromCloudLibrary (book: Book) {
-        guard let userId = UserDefaults.standard.value(forKey: "user_id") else {
+        guard TokenManager.shared.isLoggedIn else {
             DispatchQueue.main.async {
                 toast("Error removing book from cloud", on: self.view, duration: 2)
             }
@@ -529,17 +555,21 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
             return
         }
         
-        let postString = "customer_id=\(userId)&products_id=\(bookId)"
+        guard let access_token = TokenManager.shared.getAccessToken() else { return }
+        let postString = "access_token=\(access_token)&products_id=\(bookId)"
         
         let hideActivity = toastActivity(on: view)
         
         let removeUrl = URL(string: APILink.BASE_URL + APILink.REMOVE_BOOK)!
         var request = URLRequest(url: removeUrl)
         request = SharedFunctions.setRequestHeader(request: request, method: "POST")
-        
         request.httpBody = postString.data(using: .utf8)
-        
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+        let config = URLSessionConfiguration.default
+        config.protocolClasses = [AuthURLProtocol.self]
+        AuthURLProtocol.requestBodyString = postString
+        AuthURLProtocol.libraryVC = self
+        let session = URLSession(configuration: config)
+        let task = session.dataTask(with: request) { data, response, error in
             
             DispatchQueue.main.async {
                 hideActivity()
@@ -685,8 +715,7 @@ extension LibraryViewController: UICollectionViewDelegateFlowLayout, UICollectio
         if books.isEmpty {
             let noPublicationLabel = UILabel(frame: collectionView.frame.insetBy(dx: 20, dy: 0))
             noPublicationLabel.numberOfLines = 3
-            let userId = UserDefaults.standard.value(forKey: "user_id")
-            if (userId as? String) != nil {
+            if TokenManager.shared.isLoggedIn {
                 noPublicationLabel.text = NSLocalizedString("library_empty_message", comment: "Hint message when the library is empty")
             } else {
                 noPublicationLabel.text = NSLocalizedString("login_message", comment: "Hint message when the library is empty")
@@ -806,63 +835,72 @@ extension LibraryViewController: UICollectionViewDelegateFlowLayout, UICollectio
                 }
             } else if let bookid = book.bookId, bookid > 0 {
                 // download book
-                let userId = UserDefaults.standard.value(forKey: "user_id")
-                if let user_id = userId as? String, user_id.count > 0 {
-                    let url = URL(string: APILink.BASE_URL + APILink.DOWNLOAD_BOOK)!
-                    var request = URLRequest(url: url)
-                    request = SharedFunctions.setRequestHeader(request: request, method: "POST")
-                    let uuid = UIDevice.current.identifierForVendor?.uuidString ?? ""
-                    let postString = "customer_id=\(userId!)&uuid=\(uuid)&book_id=\(bookid)&device_type=iOS"
-                    request.httpBody = postString.data(using: .utf8)
-                    toast("Downloading book", on: self.view, duration: 2)
-                    let task = URLSession.shared.dataTask(with: request) { data, response, error in
-                        guard let data = data,
-                            let response = response as? HTTPURLResponse,
-                            error == nil else {
-                            print("error", error ?? "Unknown error")
-                            self.startStopRefresh(shouldStart: false, toastMessege: "Error fetching records")
-                            return
-                        }
-
-                        guard (200 ... 299) ~= response.statusCode else {
-                            print("statusCode should be 2xx, but is \(response.statusCode)")
-                            print("response = \(response)")
-                            self.startStopRefresh(shouldStart: false, toastMessege: "Error fetching books")
-                            return
-                        }
-                        
-                        // Save to local file
-                        let fileManager = FileManager.default
-                        let docsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
-                        var fileURL = docsURL.appendingPathComponent("tmpFile.epub")
-                        if let mimeType = response.mimeType,
-                           mimeType.count > 0,
-                           mimeType.contains("pdf") {
-                            fileURL = docsURL.appendingPathComponent("tmpFile")
-                        }
-                        do {
-                            try data.write(to: fileURL, options: .atomic)
-                            if let aburl = fileURL.absoluteURL {
-                                Task {
-                                    do {
-                                        try await self.library.updateBookRecord(for: bookid, from: aburl, sender: self) { progress in
-                                            print("progress: ", progress)
-                                        }
-                                        await self.startStopRefresh(shouldStart: false, toastMessege: "Book downloaded")
-                                    } catch {
-                                        print(error)
-                                        await self.startStopRefresh(shouldStart: false, toastMessege: "Book download failed")
+                guard let access_token = TokenManager.shared.getAccessToken() else { return }
+                self.startStopRefresh(shouldStart: true)
+                let url = URL(string: APILink.BASE_URL + APILink.DOWNLOAD_BOOK)!
+                var request = URLRequest(url: url)
+                request = SharedFunctions.setRequestHeader(request: request, method: "POST")
+                let uuid = UIDevice.current.identifierForVendor?.uuidString ?? ""
+                let postString = "access_token=\(access_token)&uuid=\(uuid)&book_id=\(bookid)&device_type=iOS"
+                request.httpBody = postString.data(using: .utf8)
+                toast("Downloading book", on: self.view, duration: 2)
+                let config = URLSessionConfiguration.default
+                config.protocolClasses = [AuthURLProtocol.self]
+                AuthURLProtocol.requestBodyString = postString
+                AuthURLProtocol.libraryVC = self
+                let session = URLSession(configuration: config)
+                print("\noriginal book download url: ", url)
+                print("original book download postString: ", postString)
+                let task = session.dataTask(with: request) { data, response, error in
+                    guard let data = data,
+                          let response = response as? HTTPURLResponse,
+                          error == nil else {
+                        print("error", error ?? "Unknown error")
+                        self.startStopRefresh(shouldStart: false, toastMessege: "Error fetching records")
+                        return
+                    }
+                    
+                    guard (200 ... 299) ~= response.statusCode else {
+                        print("statusCode should be 2xx, but is \(response.statusCode)")
+                        print("response = \(response)")
+                        self.startStopRefresh(shouldStart: false, toastMessege: "Error fetching books")
+                        return
+                    }
+                    print("\nbook downloaded")
+                    
+                    // Save to local file
+                    let fileManager = FileManager.default
+                    let docsURL = fileManager.urls(for: .documentDirectory, in: .userDomainMask).first!
+                    var fileURL = docsURL.appendingPathComponent("tmpFile.epub")
+                    if let mimeType = response.mimeType,
+                       mimeType.count > 0,
+                       mimeType.contains("pdf") {
+                        fileURL = docsURL.appendingPathComponent("tmpFile")
+                    }
+                    do {
+                        try data.write(to: fileURL, options: .atomic)
+                        if let aburl = fileURL.absoluteURL {
+                            Task {
+                                do {
+                                    try await self.library.updateBookRecord(for: bookid, from: aburl, sender: self) { progress in
+                                        print("progress: ", progress)
                                     }
+                                    print("book saved")
+                                    await self.startStopRefresh(shouldStart: false, toastMessege: "Book downloaded")
+                                } catch {
+                                    print(error)
+                                    await self.startStopRefresh(shouldStart: false, toastMessege: "Book download failed")
                                 }
                             }
-                        } catch let error as NSError {
-                            print(error)
-                            self.startStopRefresh(shouldStart: false)
                         }
+                    } catch let error as NSError {
+                        print(error)
+                        self.startStopRefresh(shouldStart: false)
                     }
-                    self.startStopRefresh(shouldStart: true)
-                    task.resume()
                 }
+                self.startStopRefresh(shouldStart: true)
+                task.resume()
+                
             }
         }
     }

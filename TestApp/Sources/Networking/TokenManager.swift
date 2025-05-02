@@ -31,4 +31,13 @@ class TokenManager {
         KeychainHelper.standard.delete(service: "token", account: accessTokenKey)
         KeychainHelper.standard.delete(service: "token", account: refreshTokenKey)
     }
+    
+    var isLoggedIn : Bool {
+        if let at = getAccessToken(), at.count > 0,
+           let rt = getRefreshToken(), rt.count > 0 {
+            return true
+        } else {
+            return false
+        }
+    }
 }

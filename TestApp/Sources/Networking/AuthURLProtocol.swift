@@ -9,6 +9,8 @@ import Foundation
 
 class AuthURLProtocol: URLProtocol {
     private var dataTask: URLSessionDataTask?
+    static var requestBodyString: String?
+    static var libraryVC : LibraryViewController?
 
     override class func canInit(with request: URLRequest) -> Bool {
         return URLProtocol.property(forKey: "Handled", in: request) == nil
@@ -30,8 +32,19 @@ class AuthURLProtocol: URLProtocol {
             let session = URLSession(configuration: .default, delegate: nil, delegateQueue: nil)
             self.dataTask = session.dataTask(with: mutableRequest as URLRequest) { data, response, error in
                 if let response = response as? HTTPURLResponse, response.statusCode == 401 {
-                    AuthInterceptor.shared.handle401(for: mutableRequest as URLRequest) { _ in
-                        self.client?.urlProtocol(self, didFailWithError: URLError(.userAuthenticationRequired))
+                    AuthInterceptor.shared.handle401(for: mutableRequest as URLRequest, ) { [weak self] retryRequest in
+                        // self.client?.urlProtocol(self, didFailWithError: URLError(.userAuthenticationRequired))
+                        guard let self = self else { return }
+                        
+                        self.retry(request: retryRequest)
+                        /*
+                        if retryRequest != nil {
+                            self.retry(request: retryRequest)
+                        } else {
+                            let error = NSError(domain: NSURLErrorDomain, code: NSURLErrorUserAuthenticationRequired, userInfo: nil)
+                            self.client?.urlProtocol(self, didFailWithError: error)
+                        }
+                        */
                     }
                 } else {
                     if let data = data {
@@ -50,4 +63,39 @@ class AuthURLProtocol: URLProtocol {
     override func stopLoading() {
         dataTask?.cancel()
     }
+    
+    static func clearBodyString() {
+        AuthURLProtocol.requestBodyString = nil
+    }
+    
+    func retry(request: URLRequest) {
+        let config = URLSessionConfiguration.default
+        config.protocolClasses = [AuthURLProtocol.self]
+        let session = URLSession(configuration: config)
+        print("\nretry url: ", request.url)
+        print("retry postString: ", request.httpBody)
+        let task = session.dataTask(with: request) { data, response, error in
+            AuthURLProtocol.clearBodyString()
+            if let error = error {
+                self.client?.urlProtocol(self, didFailWithError: error)
+                if let libraryVC = AuthURLProtocol.libraryVC {
+                    libraryVC.startStopRefresh(shouldStart: false)
+                }
+                return
+            }
+
+            if let response = response {
+                self.client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+            }
+
+            if let data = data {
+                self.client?.urlProtocol(self, didLoad: data)
+            }
+
+            self.client?.urlProtocolDidFinishLoading(self)
+        }
+
+        task.resume()
+    }
+
 }

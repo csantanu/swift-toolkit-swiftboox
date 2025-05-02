@@ -30,15 +30,12 @@ class APILink {
     static let BASE_URL = SITE_URL // + "app/"
 //    static let BASE_URL = SITE_URL + "app/"
     
-    static let LOGIN = "processlogin"
-    static let GET_CUSTOMER_BOOKS = "getcustomersbookrecords"
-    static let DOWNLOAD_BOOK = "getcustomersbookrecordsdetail"
-    static let REMOVE_BOOK = "removecustomersbooks"
-    
-    static let LOGIN_2 = "processloginapp"
-    static let GET_CUSTOMER_BOOKS_2 = "test-getcustomersbookrecords"
-    static let DOWNLOAD_BOOK_2 = "test-getcustomersbookrecordsdetail"
-    static let REMOVE_BOOK_2 = "test-removecustomersbooks"
+    static let LOGIN = "processloginapp" // "processlogin"
+    static let LOGOUT = "processlogoutapp" // "processlogout"
+    static let GET_CUSTOMER_BOOKS = "getcustomersbooklist" // "getcustomersbooklist" // "getcustomersbookrecords"
+    static let DOWNLOAD_BOOK = "getbookdetail" // "getbookdetail" // "getcustomersbookrecordsdetail"
+    static let REMOVE_BOOK = "removecustomersbook" // "removecustomersbook" // "removecustomersbooks"
+    static let REFRESH_TOKEN = "processrefresstoken"
 }
 
 class SharedFunctions {
@@ -56,4 +53,32 @@ class SharedFunctions {
         return req
     }
     
+    class func clearUserData(controller: Any? = nil) {
+        // clear stored tokens
+        TokenManager.shared.clearTokens()
+        UserDefaults.standard.setValue(nil, forKey: "user_profile_picture")
+        UserDefaults.standard.setValue(nil, forKey: "user_full_name")
+        // remove all books
+        NotificationCenter.default.post(name: .removeAllBooksNotification, object: nil, userInfo: ["controller" : controller ?? 1])
+    }
+}
+
+extension String {
+    static let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
+
+    static let buildVersion = Bundle.main.infoDictionary?["CFBundleVersion"] as? String
+}
+
+func print(_ objects: Any...) {
+    #if DEBUG
+    for item in objects {
+        Swift.print(item)
+    }
+    #endif
+}
+
+func print(_ object: Any) {
+    #if DEBUG
+    Swift.print(object)
+    #endif
 }

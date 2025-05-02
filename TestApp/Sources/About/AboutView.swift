@@ -37,13 +37,12 @@ struct AboutView: View {
             HowToReadView()
         }.alert("Confirm Logout", isPresented: $presenLogoutConfirmation) {
             Button(NSLocalizedString("confirm_button", comment: ""), role: .destructive) {
+                // call logout API
+                logout()
+                
                 showAccountSection = false
-                // clear stored user id
-                UserDefaults.standard.setValue(nil, forKey: "user_id")
-                UserDefaults.standard.setValue(nil, forKey: "user_profile_picture")
-                UserDefaults.standard.setValue(nil, forKey: "user_full_name")
-                // remove all books
-                NotificationCenter.default.post(name: .removeAllBooksNotification, object: nil, userInfo: ["controller" : self])
+                // clear user data
+                SharedFunctions.clearUserData(controller: self)
             }
             Button(NSLocalizedString("cancel_button", comment: ""), role: .cancel) {}
         } message: {
@@ -60,8 +59,7 @@ struct AboutView: View {
             showAccountSection = true
         }
         .onAppear {
-            if let userId = UserDefaults.standard.value(forKey: "user_id") as? String,
-               userId.count > 0 {
+            if TokenManager.shared.isLoggedIn {
                 showAccountSection = true
             }
         }
@@ -168,18 +166,44 @@ struct AboutView: View {
             }
         }
     }
+    
+    private func logout() {
+        let uuid = UIDevice.current.identifierForVendor?.uuidString ?? ""
+        guard let access_token = TokenManager.shared.getAccessToken() else { return }
+        let postString = "access_token=\(access_token)&device_id=\(uuid)"
+        let logoutUrl = URL(string: APILink.BASE_URL + APILink.LOGOUT)!
+        var request = URLRequest(url: logoutUrl)
+        request = SharedFunctions.setRequestHeader(request: request, method: "POST")
+        request.httpBody = postString.data(using: .utf8)
+        AuthURLProtocol.requestBodyString = postString
+        let task = URLSession.shared.dataTask(with: request) { data, response, error in
+            guard let data = data,
+                  let response = response as? HTTPURLResponse,
+                  error == nil else {
+                print("error", error ?? "Unknown error")
+                return
+            }
+            guard (200 ... 299) ~= response.statusCode else {
+                print("statusCode should be 2xx, but is \(response.statusCode)")
+                print("response = \(response)")
+                return
+            }
+            do {
+                let parsedData = try JSONSerialization.jsonObject(with: data) as! [String:Any]
+                print(parsedData)
+            } catch let error as NSError {
+                print(error)
+            }
+        }
+        
+        task.resume()
+    }
 }
 
 struct About_Previews: PreviewProvider {
     static var previews: some View {
         AboutView()
     }
-}
-
-private extension String {
-    static let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String
-
-    static let buildVersion = Bundle.main.infoDictionary?["CFBundleVersion"] as? String
 }
 
 private extension URL {

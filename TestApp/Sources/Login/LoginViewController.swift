@@ -57,16 +57,36 @@ class LoginViewController: UIViewController, UITextFieldDelegate {
         }
         
         let uuid = UIDevice.current.identifierForVendor?.uuidString ?? ""
+        var app_version = ""
+        if let ver = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
+            app_version = ver
+        }
+        let ram = ProcessInfo.processInfo.physicalMemory / 1073741824
+        var systemInfo = utsname()
+        uname(&systemInfo)
+        let processor = withUnsafePointer(to: &systemInfo.machine.0) { ptr in
+            return String(cString: ptr)
+        }
+        let device_model = UIDevice.current.name
+        let device_os = UIDevice.current.systemVersion
+        var isVirtual = 0
+#if targetEnvironment(simulator)
+        isVirtual = 1
+#endif
+        
+#if DEBUG
+        isVirtual = 0
+#endif
         var postString = ""
         if let email = emailTextField.text, let pass = passwordTextField.text {
             if (email.count > 0 && pass.count > 0) {
-                postString = "email=\(email)&password=\(pass)&device_id=\(uuid)"
+                postString = "email=\(email)&password=\(pass)&device_type=iOS&device_id=\(uuid)&uuid=\(uuid)&app_version=\(app_version)&ram=\(ram)GB&processor=\(processor)&device_os=\(device_os)&device_model=\(device_model)&manufacturer=Apple&serial=NA&isVirtual=\(isVirtual)&isRooted=0"
             } else { return }
         } else { return }
-        
+        print("login data: ", postString)
         let hideActivity = toastActivity(on: view)
         
-        let loginUrl = URL(string: APILink.BASE_URL + APILink.LOGIN_2)!
+        let loginUrl = URL(string: APILink.BASE_URL + APILink.LOGIN)!
         var request = URLRequest(url: loginUrl)
         request = SharedFunctions.setRequestHeader(request: request, method: "POST")
         // postString = "email=test1@test.com&password=12345"
@@ -100,35 +120,27 @@ class LoginViewController: UIViewController, UITextFieldDelegate {
                     if let singleObjArray = parsedData["data"] as? Array<Any> {
                         if (singleObjArray.count > 0) {
                             if let dataObj = singleObjArray[0] as? [String:Any] {
-                                if let cusId = dataObj["customers_id"] {
-                                    print("\(cusId)")
-                                    let cusIdStr = "\(cusId)"
-                                    if (cusIdStr.count > 0) {
-                                        // set user id
-                                        UserDefaults.standard.setValue(cusIdStr, forKey: "user_id")
-                                        if let cusPic = dataObj["customers_picture"] as? String {
-                                            let cusPicUrl = APILink.SITE_URL + cusPic
-                                            UserDefaults.standard.setValue(cusPicUrl, forKey: "user_profile_picture")
-                                        }
-                                        if let cusFName = dataObj["customers_firstname"] as? String {
-                                            var cusName = cusFName
-                                            if let cusLName = dataObj["customers_lastname"] as? String {
-                                                cusName = cusFName + " " + cusLName
-                                            }
-                                            
-                                            if (cusName.count > 0) {
-                                                UserDefaults.standard.setValue(cusName, forKey: "user_full_name")
-                                            }
-                                        }
-                                        
-                                        // register device
-                                        DispatchQueue.global(qos: .background).async {
-                                            self.registerDevice()
-                                        }
-                                        
-                                        // show logout
-                                        NotificationCenter.default.post(name: Notification.Name(rawValue: "reloadAboutTableNotification"), object: nil, userInfo: ["controller" : self])
+                                if let access_token = dataObj["access_token"] as? String,
+                                   let refresh_token = dataObj["refresh_token"] as? String {
+                                    TokenManager.shared.save(accessToken: access_token, refreshToken: refresh_token)
+                                }
+                                if let cusPic = dataObj["customers_picture"] as? String {
+                                    let cusPicUrl = APILink.SITE_URL + cusPic
+                                    UserDefaults.standard.setValue(cusPicUrl, forKey: "user_profile_picture")
+                                }
+                                if let cusFName = dataObj["customers_firstname"] as? String {
+                                    var cusName = cusFName
+                                    if let cusLName = dataObj["customers_lastname"] as? String {
+                                        cusName = cusFName + " " + cusLName
                                     }
+                                    
+                                    if (cusName.count > 0) {
+                                        UserDefaults.standard.setValue(cusName, forKey: "user_full_name")
+                                    }
+                                }
+                                // show logout & sync library
+                                DispatchQueue.main.async {
+                                    NotificationCenter.default.post(name: .reloadAboutTableNotification, object: nil, userInfo: ["controller" : self])
                                 }
                             }
                         }
@@ -160,67 +172,5 @@ class LoginViewController: UIViewController, UITextFieldDelegate {
             login()
         }
         return true
-    }
-    
-    func registerDevice() {
-        guard let userId = UserDefaults.standard.value(forKey: "user_id") else { return }
-        let uuid = UIDevice.current.identifierForVendor?.uuidString ?? ""
-        var app_version = ""
-        if let ver = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String {
-            app_version = ver
-        }
-        let ram = ProcessInfo.processInfo.physicalMemory / 1073741824
-        var systemInfo = utsname()
-        uname(&systemInfo)
-        let processor = withUnsafePointer(to: &systemInfo.machine.0) { ptr in
-            return String(cString: ptr)
-        }
-        let device_model = UIDevice.current.name
-        let device_os = UIDevice.current.systemVersion
-        var isVirtual = 0
-#if targetEnvironment(simulator)
-        isVirtual = 1
-#endif
-        
-#if DEBUG
-        isVirtual = 0
-#endif
-        
-        let postString = "device_type=iOS&customers_id=\(userId)&device_id=\(uuid)&uuid=\(uuid)&app_version=\(app_version)&ram=\(ram) GB&processor=\(processor)&device_os=\(device_os)&device_model=\(device_model)&manufacturer=Apple&serial=NA&isVirtual=\(isVirtual)&isRooted=0"
-        
-        let registerDeviceUrl = URL(string: APILink.BASE_URL + APILink.REGISTER_DEVICE)!
-        var request = URLRequest(url: registerDeviceUrl)
-        request = SharedFunctions.setRequestHeader(request: request, method: "POST")
-        
-        request.httpBody = postString.data(using: .utf8)
-        
-        let task = URLSession.shared.dataTask(with: request) { data, response, error in
-            
-            guard let data = data,
-                  let response = response as? HTTPURLResponse,
-                  error == nil else {
-                print("error", error ?? "Unknown error")
-                return
-            }
-            
-            guard (200 ... 299) ~= response.statusCode else {
-                print("statusCode should be 2xx, but is \(response.statusCode)")
-                print("response = \(response)")
-                return
-            }
-            
-            do {
-                let parsedData = try JSONSerialization.jsonObject(with: data) as! [String:Any]
-                print(parsedData)
-                
-                // refresh library
-                if (self.delegate != nil) {
-                    self.delegate?.refreshLibrary()
-                }
-            } catch let error as NSError {
-                print(error)
-            }
-        }
-        task.resume()
     }
 }
