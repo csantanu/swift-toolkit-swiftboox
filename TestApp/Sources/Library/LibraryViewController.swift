@@ -58,6 +58,12 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
     let activityIndicatorView = UIActivityIndicatorView.init(frame: CGRect.init(x: 0, y: 0, width: 25, height: 25))
     
     private lazy var refreshLoader = UIBarButtonItem.init(customView: activityIndicatorView)
+    
+    @IBOutlet var searchBar: UISearchBar!
+    
+    @Published private var searchText: String = ""
+    
+    private lazy var searchShowHideButton = UIBarButtonItem(barButtonSystemItem: .search, target: self, action: #selector(toggleSearchBar))
 
     @IBOutlet var collectionView: UICollectionView! {
         didSet {
@@ -74,17 +80,8 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        library.allBooks()
-            .receive(on: DispatchQueue.main)
-            .sink { completion in
-                if case let .failure(error) = completion {
-                    self.libraryDelegate?.presentError(UserError(error), from: self)
-                }
-            } receiveValue: { newBooks in
-                self.books = newBooks
-                self.collectionView.reloadData()
-            }
-            .store(in: &subscriptions)
+        loadAllBooks() // Initial load
+        bindSearchText()
 
         // Add long press gesture recognizer.
         let recognizer = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress))
@@ -95,9 +92,9 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
         collectionView.accessibilityLabel = NSLocalizedString("library_a11y_label", comment: "Accessibility label for the library collection view")
 
         setRightBarButton()
+        
+        searchBar.delegate = self
     }
-    
-    
 
     override func viewWillAppear(_ animated: Bool) {
         navigationController?.setNavigationBarHidden(false, animated: animated)
@@ -187,20 +184,20 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
     
     func setRightBarButton() {
         if TokenManager.shared.isLoggedIn {
-            self.navigationItem.rightBarButtonItem = refreshLibraryButton
+            self.navigationItem.rightBarButtonItems = [refreshLibraryButton, searchShowHideButton]
         } else {
-            self.navigationItem.rightBarButtonItem = loginButton
+            self.navigationItem.rightBarButtonItems = [loginButton]
         }
     }
     
     func showRefreshLoader(status:Bool = false) {
         if status {
-            self.navigationItem.rightBarButtonItem = refreshLoader
+            self.navigationItem.rightBarButtonItems = [refreshLoader]
             activityIndicatorView.startAnimating()
             self.navigationItem.title = "Refreshing Library"
         } else {
             activityIndicatorView.stopAnimating()
-            self.navigationItem.rightBarButtonItem = refreshLibraryButton
+            self.navigationItem.rightBarButtonItems = [refreshLibraryButton, searchShowHideButton]
             self.navigationItem.title = "Library"
         }
     }
@@ -213,6 +210,47 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
                 self.present(alert, animated: true)
             }
         }
+    }
+    
+    private func loadAllBooks() {
+        library.allBooks()
+            .receive(on: DispatchQueue.main)
+            .sink { completion in
+                if case let .failure(error) = completion {
+                    self.libraryDelegate?.presentError(UserError(error), from: self)
+                }
+            } receiveValue: { newBooks in
+                self.books = newBooks
+                self.collectionView.reloadData()
+            }
+            .store(in: &subscriptions)
+    }
+    
+    func bindSearchText() {
+        $searchText
+            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
+            .removeDuplicates()
+            .sink { [weak self] text in
+                guard let self = self else { return }
+                
+                // If empty, reload all books
+                if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    self.loadAllBooks()
+                } else {
+                    self.library.filterBooks(searchText: text)
+                        .receive(on: DispatchQueue.main)
+                        .sink { completion in
+                            if case let .failure(error) = completion {
+                                self.libraryDelegate?.presentError(UserError(error), from: self)
+                            }
+                        } receiveValue: { newBooks in
+                            self.books = newBooks
+                            self.collectionView.reloadData()
+                        }
+                        .store(in: &self.subscriptions)
+                }
+            }
+            .store(in: &subscriptions)
     }
     
     fileprivate func setUserProfilePicture() {
@@ -247,7 +285,27 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
         }
     }
     
+    @objc func toggleSearchBar() {
+        UIView.animate(withDuration: 0.25) {
+            self.searchBar.isHidden = !self.searchBar.isHidden
+            if !self.searchBar.isHidden {
+                self.searchBar.becomeFirstResponder()
+            } else {
+                if self.searchBar.isFirstResponder {
+                    self.searchBar.resignFirstResponder()
+                }
+                self.searchBar.text = ""
+                self.searchText = ""
+            }
+        } completion: { _ in
+            self.searchShowHideButton.tintColor = self.searchBar.isHidden ? .systemBlue : .systemGray
+        }
+    }
+    
     @objc func refreshLibrary() {
+        if !self.searchBar.isHidden {
+            toggleSearchBar()
+        }
         if (!Reachability.isConnectedToNetwork()) {
             if !self.isAutoRefreshing {
                 toast("Network connection problem", on: self.view, duration: 2)
@@ -686,6 +744,22 @@ extension LibraryViewController {
     }
 }
 
+extension LibraryViewController: UISearchBarDelegate {
+    func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
+        print("User typed: \(searchText)")
+        self.searchText = searchText
+    }
+    
+    func searchBarSearchButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.resignFirstResponder()
+    }
+    
+    func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
+        searchBar.resignFirstResponder()
+        toggleSearchBar()
+    }
+}
+
 // MARK: - UIDocumentPickerDelegate.
 
 extension LibraryViewController: UIDocumentPickerDelegate {
@@ -828,6 +902,9 @@ extension LibraryViewController: UICollectionViewDelegateFlowLayout, UICollectio
                 do {
                     guard let pub = try await library.openBook(book, sender: self) else {
                         return
+                    }
+                    if !self.searchBar.isHidden {
+                        toggleSearchBar()
                     }
                     libraryDelegate.libraryDidSelectPublication(pub, book: book)
                 } catch {
