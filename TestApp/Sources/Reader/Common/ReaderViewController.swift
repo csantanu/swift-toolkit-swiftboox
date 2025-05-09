@@ -27,6 +27,10 @@ class ReaderViewController<N: Navigator>: UIViewController,
 
     private var searchViewModel: SearchViewModel?
     private var searchViewController: UIHostingController<SearchView>?
+    
+    private lazy var bookmarkEmptyImage = UIImage(systemName: "bookmark")
+    private lazy var bookmarkFilledImage = UIImage(systemName: "bookmark.fill")
+    private lazy var bookmarkButton = UIBarButtonItem(image: bookmarkEmptyImage, style: .plain, target: self, action: #selector(bookmarkCurrentPosition))
 
     init(
         navigator: N,
@@ -74,7 +78,8 @@ class ReaderViewController<N: Navigator>: UIViewController,
             buttons.append(UIBarButtonItem(image: #imageLiteral(resourceName: "drm"), style: .plain, target: self, action: #selector(presentDRMManagement)))
         }
         // Bookmarks
-        buttons.append(UIBarButtonItem(image: #imageLiteral(resourceName: "bookmark"), style: .plain, target: self, action: #selector(bookmarkCurrentPosition)))
+        
+        buttons.append(bookmarkButton)
         // Search
         if publication.isSearchable {
             buttons.append(UIBarButtonItem(image: UIImage(systemName: "magnifyingglass"), style: .plain, target: self, action: #selector(showSearchUI)))
@@ -89,6 +94,12 @@ class ReaderViewController<N: Navigator>: UIViewController,
         Task {
             do {
                 try await books.saveProgress(for: bookId, locator: locator)
+                
+                let bookmarked = try await bookmarks.isBookmarked(Bookmark(bookId: bookId, locator: locator))
+                
+                bookmarkButton.image = bookmarked ? bookmarkFilledImage : bookmarkEmptyImage
+                
+                // print(bookmarked ? "Page is bookmarked" : "Page is not bookmarked")
             } catch {
                 moduleDelegate?.presentError(UserError(error), from: self)
             }
@@ -151,8 +162,15 @@ class ReaderViewController<N: Navigator>: UIViewController,
 
         Task {
             do {
-                try await bookmarks.add(bookmark)
-                toast(NSLocalizedString("reader_bookmark_success_message", comment: "Success message when adding a bookmark"), on: self.view, duration: 1)
+                // try await bookmarks.add(bookmark)
+                if let id = try await bookmarks.add(bookmark) {
+                    print("Bookmark added with ID \(id)")
+                    toast(NSLocalizedString("reader_bookmark_success_message", comment: "Success message when adding a bookmark"), on: self.view, duration: 1)
+                    bookmarkButton.image = bookmarkFilledImage
+                } else {
+                    print("Bookmark already exists")
+                    toast(NSLocalizedString("reader_bookmark_exists_message", comment: "Bookmark exists"), on: self.view, duration: 1)
+                }
             } catch {
                 print(error)
                 toast(NSLocalizedString("reader_bookmark_failure_message", comment: "Error message when adding a new bookmark failed"), on: self.view, duration: 2)

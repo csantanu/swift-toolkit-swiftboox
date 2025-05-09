@@ -52,14 +52,50 @@ final class BookmarkRepository {
                 .fetchAll(db)
         }
     }
+    
+    func isBookmarked(_ bookmark: Bookmark) async throws -> Bool {
+        try await db.read { db in
+            let filter = Bookmark
+                .filter(Bookmark.Columns.bookId == bookmark.bookId)
+                .filter(Bookmark.Columns.locator == bookmark.locator.jsonString)
+                .filter(Bookmark.Columns.progression == bookmark.progression)
 
+            return try filter.fetchOne(db) != nil
+        }
+    }
+
+
+    // new add method with exists check
     @discardableResult
+    func add(_ bookmark: Bookmark) async throws -> Bookmark.Id? {
+        try await db.write { db in
+            // Build the query filter in simpler steps
+            let filter = Bookmark
+                .filter(Bookmark.Columns.bookId == bookmark.bookId)
+                .filter(Bookmark.Columns.locator == bookmark.locator.jsonString)
+                .filter(Bookmark.Columns.progression == bookmark.progression)
+
+            let existing = try filter.fetchOne(db)
+
+            // If it exists, don't insert
+            guard existing == nil else {
+                return nil
+            }
+
+            // Insert and return ID
+            try bookmark.insert(db)
+            return Bookmark.Id(rawValue: db.lastInsertedRowID)
+        }
+    }
+
+    
+    /* old add method without exists check
     func add(_ bookmark: Bookmark) async throws -> Bookmark.Id {
         try await db.write { db in
             try bookmark.insert(db)
             return Bookmark.Id(rawValue: db.lastInsertedRowID)
         }
-    }
+    }*/
 
     func remove(_ id: Bookmark.Id) async throws {
         try await db.write { db in try Bookmark.deleteOne(db, key: id) }

@@ -86,6 +86,8 @@
 "reader_bookmark_failure_message" = "Could not add bookmark";
 /* Success message when adding a bookmark */
 "reader_bookmark_success_message" = "Bookmark added";
+/* Message when bookmark exists */
+"reader_bookmark_exists_message" = "Bookmark exists";
 
 /* Error message when adding a new highlight failed */
 "reader_highlight_failure_message" = "Could not add highlight";
