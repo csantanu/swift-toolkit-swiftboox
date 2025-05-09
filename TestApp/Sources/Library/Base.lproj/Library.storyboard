@@ -18,10 +18,11 @@
                             <stackView opaque="NO" contentMode="scaleToFill" axis="vertical" translatesAutoresizingMaskIntoConstraints="NO" id="HYM-Cb-9zF">
                                 <rect key="frame" x="0.0" y="20" width="375" height="647"/>
                                 <subviews>
-                                    <searchBar hidden="YES" contentMode="redraw" placeholder="Search by title or author" showsCancelButton="YES" translatesAutoresizingMaskIntoConstraints="NO" id="zjy-At-OCu">
+                                    <searchBar hidden="YES" contentMode="redraw" placeholder="Search by title or author" showsCancelButton="YES" showsScopeBar="YES" translatesAutoresizingMaskIntoConstraints="NO" id="zjy-At-OCu">
                                         <rect key="frame" x="0.0" y="0.0" width="375" height="0.0"/>
                                         <textInputTraits key="textInputTraits"/>
                                         <scopeButtonTitles>
+                                            <string>All Books</string>
                                             <string>Purchased</string>
                                             <string>Samples</string>
                                             <string>Downloaded</string>

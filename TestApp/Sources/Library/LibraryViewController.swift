@@ -62,6 +62,7 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
     @IBOutlet var searchBar: UISearchBar!
     
     @Published private var searchText: String = ""
+    @Published private var bookFilter: BookFilter = .all
     
     private lazy var searchShowHideButton = UIBarButtonItem(barButtonSystemItem: .search, target: self, action: #selector(toggleSearchBar))
 
@@ -81,7 +82,7 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
         super.viewDidLoad()
         
         loadAllBooks() // Initial load
-        bindSearchText()
+        bindSearchAndFilter()
 
         // Add long press gesture recognizer.
         let recognizer = UILongPressGestureRecognizer(target: self, action: #selector(handleLongPress))
@@ -226,31 +227,62 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
             .store(in: &subscriptions)
     }
     
-    func bindSearchText() {
-        $searchText
-            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
-            .removeDuplicates()
-            .sink { [weak self] text in
-                guard let self = self else { return }
-                
-                // If empty, reload all books
-                if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    self.loadAllBooks()
-                } else {
-                    self.library.filterBooks(searchText: text)
-                        .receive(on: DispatchQueue.main)
-                        .sink { completion in
-                            if case let .failure(error) = completion {
-                                self.libraryDelegate?.presentError(UserError(error), from: self)
-                            }
-                        } receiveValue: { newBooks in
-                            self.books = newBooks
-                            self.collectionView.reloadData()
+//    func bindSearchText() {
+//        $searchText
+//            .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
+//            .removeDuplicates()
+//            .sink { [weak self] text in
+//                guard let self = self else { return }
+//                
+//                // If empty, reload all books
+//                if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+//                    self.loadAllBooks()
+//                } else {
+//                    self.library.filterBooks(searchText: text)
+//                        .receive(on: DispatchQueue.main)
+//                        .sink { completion in
+//                            if case let .failure(error) = completion {
+//                                self.libraryDelegate?.presentError(UserError(error), from: self)
+//                            }
+//                        } receiveValue: { newBooks in
+//                            self.books = newBooks
+//                            self.collectionView.reloadData()
+//                        }
+//                        .store(in: &self.subscriptions)
+//                }
+//            }
+//            .store(in: &subscriptions)
+//    }
+    
+    func bindSearchAndFilter() {
+        Publishers.CombineLatest(
+            $searchText
+                .debounce(for: .milliseconds(300), scheduler: RunLoop.main)
+                .removeDuplicates(),
+            $bookFilter
+                .removeDuplicates())
+        .sink { [weak self] (text, filter) in
+            guard let self = self else { return }
+            
+            let trimmedText = text.trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            if trimmedText.isEmpty && filter == .all {
+                self.loadAllBooks()
+            } else {
+                self.library.filterBooks(searchText: trimmedText, filter: filter)
+                    .receive(on: DispatchQueue.main)
+                    .sink { completion in
+                        if case let .failure(error) = completion {
+                            self.libraryDelegate?.presentError(UserError(error), from: self)
                         }
-                        .store(in: &self.subscriptions)
-                }
+                    } receiveValue: { newBooks in
+                        self.books = newBooks
+                        self.collectionView.reloadData()
+                    }
+                    .store(in: &self.subscriptions)
             }
-            .store(in: &subscriptions)
+        }
+        .store(in: &subscriptions)
     }
     
     fileprivate func setUserProfilePicture() {
@@ -258,9 +290,11 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
             return
         }
         let userPic = UserDefaults.standard.value(forKey: "user_profile_picture")
-        if let userPicUrl = userPic as? String, userPicUrl.count > 0 {
+        if let userPicUrl = userPic as? String, userPicUrl.count > 0,
+           let lastPathComp = userPicUrl.components(separatedBy: "/").last {
+            let actualPath = "\(APILink.USER_PROFILE_PICS_PATH)\(lastPathComp)"
             DispatchQueue.global().async { [weak self] in
-                if let data = try? Data(contentsOf: URL(string: userPicUrl)!) {
+                if let data = try? Data(contentsOf: URL(string: actualPath)!) {
                     if let image = UIImage(data: data) {
                         DispatchQueue.main.async {
                             let size = CGSize(width: 30, height: 30)
@@ -298,7 +332,7 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
                 self.searchText = ""
             }
         } completion: { _ in
-            self.searchShowHideButton.tintColor = self.searchBar.isHidden ? .systemBlue : .systemGray
+            self.searchShowHideButton.tintColor = self.searchBar.isHidden ? .systemBlue : .systemPurple
         }
     }
     
@@ -306,6 +340,7 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
         if !self.searchBar.isHidden {
             toggleSearchBar()
         }
+        resetBooksFilter()
         if (!Reachability.isConnectedToNetwork()) {
             if !self.isAutoRefreshing {
                 toast("Network connection problem", on: self.view, duration: 2)
@@ -747,6 +782,7 @@ extension LibraryViewController {
 extension LibraryViewController: UISearchBarDelegate {
     func searchBar(_ searchBar: UISearchBar, textDidChange searchText: String) {
         print("User typed: \(searchText)")
+        resetBooksFilter()
         self.searchText = searchText
     }
     
@@ -757,6 +793,38 @@ extension LibraryViewController: UISearchBarDelegate {
     func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
         searchBar.resignFirstResponder()
         toggleSearchBar()
+        resetBooksFilter()
+    }
+    
+    func searchBar(_ searchBar: UISearchBar, selectedScopeButtonIndexDidChange selectedScope: Int) {
+        if searchBar.isFirstResponder {
+            searchBar.resignFirstResponder()
+        }
+        if let text = searchBar.text,
+           text.count > 0 {
+            searchBar.text = ""
+        }
+        if self.searchText.count > 0 {
+            self.searchText = ""
+        }
+        print("Selected segment: \(selectedScope)")
+        switch selectedScope {
+        case 1:
+            bookFilter = .purchased
+        case 2:
+            bookFilter = .samples
+        case 3:
+            bookFilter = .downloaded
+        default:
+            bookFilter = .all
+        }
+    }
+    
+    func resetBooksFilter() {
+        if bookFilter != .all {
+            bookFilter = .all
+            searchBar.selectedScopeButtonIndex = 0
+        }
     }
 }
 

@@ -113,7 +113,7 @@ struct BookCloud {
 
 extension Book: TableRecord, FetchableRecord, PersistableRecord {
     enum Columns: String, ColumnExpression {
-        case id, identifier, title, authors, type, url, coverPath, updatedAt, locator, progression, created, preferencesJSON
+        case id, identifier, title, authors, type, url, coverPath, updatedAt, locator, isSample, progression, created, preferencesJSON
     }
 }
 
@@ -142,7 +142,7 @@ final class BookRepository {
         }
     }
     
-    func all(searchText: String? = nil) -> AnyPublisher<[Book], Error> {
+    func all(searchText: String? = nil, filter: BookFilter = .all) -> AnyPublisher<[Book], Error> {
         db.observe { db in
             var query = Book.order(Book.Columns.updatedAt)
 
@@ -151,6 +151,18 @@ final class BookRepository {
                 query = query.filter(
                     Book.Columns.title.like(pattern) || Book.Columns.authors.like(pattern)
                 )
+            } else {
+                // Apply book filter
+                switch filter {
+                case .purchased:
+                    query = query.filter(Book.Columns.isSample == false)
+                case .samples:
+                    query = query.filter(Book.Columns.isSample == true)
+                case .downloaded:
+                    query = query.filter(Book.Columns.url != "")
+                case .all:
+                    break // No additional filtering
+                }
             }
 
             return try query.fetchAll(db).reversed()

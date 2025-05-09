@@ -30,8 +30,8 @@ final class LibraryService: Loggable {
         books.all()
     }
     
-    func filterBooks(searchText: String) -> AnyPublisher<[Book], Error> {
-        books.all(searchText: searchText)
+    func filterBooks(searchText: String, filter: BookFilter) -> AnyPublisher<[Book], Error> {
+        books.all(searchText: searchText, filter: filter)
     }
 
     // MARK: Opening
