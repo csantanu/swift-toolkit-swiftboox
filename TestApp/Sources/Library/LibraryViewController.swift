@@ -321,6 +321,7 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
     
     @objc func toggleSearchBar() {
         UIView.animate(withDuration: 0.25) {
+            self.resetBooksFilter()
             self.searchBar.isHidden = !self.searchBar.isHidden
             if !self.searchBar.isHidden {
                 self.searchBar.becomeFirstResponder()
@@ -340,7 +341,6 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
         if !self.searchBar.isHidden {
             toggleSearchBar()
         }
-        resetBooksFilter()
         if (!Reachability.isConnectedToNetwork()) {
             if !self.isAutoRefreshing {
                 toast("Network connection problem", on: self.view, duration: 2)
@@ -793,7 +793,6 @@ extension LibraryViewController: UISearchBarDelegate {
     func searchBarCancelButtonClicked(_ searchBar: UISearchBar) {
         searchBar.resignFirstResponder()
         toggleSearchBar()
-        resetBooksFilter()
     }
     
     func searchBar(_ searchBar: UISearchBar, selectedScopeButtonIndexDidChange selectedScope: Int) {
