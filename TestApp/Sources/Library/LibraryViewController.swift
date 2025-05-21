@@ -857,7 +857,11 @@ extension LibraryViewController: UICollectionViewDelegateFlowLayout, UICollectio
             let noPublicationLabel = UILabel(frame: collectionView.frame.insetBy(dx: 20, dy: 0))
             noPublicationLabel.numberOfLines = 3
             if TokenManager.shared.isLoggedIn {
-                noPublicationLabel.text = NSLocalizedString("library_empty_message", comment: "Hint message when the library is empty")
+                if bookFilter != .all {
+                    noPublicationLabel.text = NSLocalizedString("library_filter_result_empty_message", comment: "Hint message when the library is empty")
+                } else {
+                    noPublicationLabel.text = NSLocalizedString("library_empty_message", comment: "Hint message when the library is empty")
+                }
             } else {
                 noPublicationLabel.text = NSLocalizedString("login_message", comment: "Hint message when the library is empty")
             }

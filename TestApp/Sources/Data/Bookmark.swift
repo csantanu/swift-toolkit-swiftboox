@@ -97,8 +97,27 @@ final class BookmarkRepository {
         }
     }*/
 
+    /* old remove method
     func remove(_ id: Bookmark.Id) async throws {
         try await db.write { db in try Bookmark.deleteOne(db, key: id) }
+    }
+    */
+    
+    func remove(_ bookmark: Bookmark) async throws -> Bool {
+        try await db.write { db in
+            let filter = Bookmark
+                .filter(Bookmark.Columns.bookId == bookmark.bookId)
+                .filter(Bookmark.Columns.locator == bookmark.locator.jsonString)
+                .filter(Bookmark.Columns.progression == bookmark.progression)
+
+            let existing = try filter.fetchOne(db)
+            
+            guard let cBookmark = existing else {
+                return false
+            }
+
+            return try Bookmark.deleteOne(db, key: cBookmark.id)
+        }
     }
 }
 

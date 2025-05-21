@@ -37,6 +37,7 @@
 /* Hint message when the library is empty */
 "login_message" = "📖 \n Click on Login to access your library";
 "library_empty_message" = "📖 \n Click on Sync to refresh your library";
+"library_filter_result_empty_message" = "📖 \n No books found";
 
 /* Add book alert message */
 "library_add_book_title" = "Add a book to your library";
@@ -88,6 +89,10 @@
 "reader_bookmark_success_message" = "Bookmark added";
 /* Message when bookmark exists */
 "reader_bookmark_exists_message" = "Bookmark exists";
+/* Message when bookmark is deleted */
+"reader_bookmark_removed_message" = "Bookmark removed";
+/* Message when bookmark deletion failed */
+"reader_bookmark_remove_failed_message" = "Couldn't remove bookmark";
 
 /* Error message when adding a new highlight failed */
 "reader_highlight_failure_message" = "Could not add highlight";

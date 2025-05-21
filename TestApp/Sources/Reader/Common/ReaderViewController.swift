@@ -168,8 +168,15 @@ class ReaderViewController<N: Navigator>: UIViewController,
                     toast(NSLocalizedString("reader_bookmark_success_message", comment: "Success message when adding a bookmark"), on: self.view, duration: 1)
                     bookmarkButton.image = bookmarkFilledImage
                 } else {
-                    print("Bookmark already exists")
-                    toast(NSLocalizedString("reader_bookmark_exists_message", comment: "Bookmark exists"), on: self.view, duration: 1)
+                    let deleted = try await bookmarks.remove(bookmark)
+                    if deleted { // bookmark removed successfuly
+                        toast(NSLocalizedString("reader_bookmark_removed_message", comment: "Bookmark removed"), on: self.view, duration: 1)
+                        print("Bookmark removed")
+                        bookmarkButton.image = bookmarkEmptyImage
+                    } else { // failed removing bookmark
+                        toast(NSLocalizedString("reader_bookmark_remove_failed_message", comment: "Bookmark remove failed"), on: self.view, duration: 1)
+                        print("Failed removing bookmark")
+                    }
                 }
             } catch {
                 print(error)
