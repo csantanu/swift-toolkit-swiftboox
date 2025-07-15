@@ -85,6 +85,9 @@
                         </constraints>
                         <preferredSymbolConfiguration key="preferredSymbolConfiguration" weight="bold"/>
                     </imageView>
+                    <activityIndicatorView hidden="YES" opaque="NO" userInteractionEnabled="NO" contentMode="scaleToFill" horizontalHuggingPriority="750" verticalHuggingPriority="750" hidesWhenStopped="YES" style="medium" translatesAutoresizingMaskIntoConstraints="NO" id="TlJ-ef-t0l">
+                        <rect key="frame" x="65" y="122.5" width="20" height="20"/>
+                    </activityIndicatorView>
                 </subviews>
             </view>
             <viewLayoutGuide key="safeArea" id="ZTg-uK-7eu"/>
@@ -96,12 +99,15 @@
                 <constraint firstItem="KhJ-A1-NVt" firstAttribute="top" secondItem="gTV-IL-0wX" secondAttribute="top" id="JGi-ub-Xfe"/>
                 <constraint firstAttribute="trailing" secondItem="KhJ-A1-NVt" secondAttribute="trailing" id="JpO-SN-xWE"/>
                 <constraint firstItem="2r5-kJ-gvM" firstAttribute="bottom" secondItem="OAe-VD-5Lx" secondAttribute="bottom" id="L3g-G1-m98"/>
+                <constraint firstItem="TlJ-ef-t0l" firstAttribute="centerX" secondItem="ZTg-uK-7eu" secondAttribute="centerX" id="Rch-Vv-aie"/>
                 <constraint firstItem="Ohv-Wz-kkM" firstAttribute="leading" secondItem="gTV-IL-0wX" secondAttribute="leading" constant="6" id="bCD-uU-CWX"/>
                 <constraint firstItem="Ohv-Wz-kkM" firstAttribute="top" secondItem="gTV-IL-0wX" secondAttribute="top" constant="8" id="cJ0-t8-SYl"/>
+                <constraint firstItem="TlJ-ef-t0l" firstAttribute="centerY" secondItem="gTV-IL-0wX" secondAttribute="centerY" id="iLD-J1-F7u"/>
                 <constraint firstAttribute="trailing" secondItem="2r5-kJ-gvM" secondAttribute="trailing" id="kNG-Em-PA0"/>
                 <constraint firstAttribute="bottom" secondItem="KhJ-A1-NVt" secondAttribute="bottom" id="lg8-f2-pRv"/>
             </constraints>
             <connections>
+                <outlet property="activityIndicator" destination="TlJ-ef-t0l" id="xKg-Rl-Tut"/>
                 <outlet property="authorLabel" destination="i6P-RP-5x6" id="jFQ-em-Voz"/>
                 <outlet property="cloudDownloadImageView" destination="Ohv-Wz-kkM" id="hbg-Ou-GhB"/>
                 <outlet property="coverImageView" destination="OAe-VD-5Lx" id="f2t-iu-jSA"/>

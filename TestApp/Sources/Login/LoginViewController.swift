@@ -30,8 +30,8 @@ class LoginViewController: UIViewController, UITextFieldDelegate {
     override func viewDidAppear(_ animated: Bool) {
         self.emailTextField.becomeFirstResponder()
 #if DEBUG
-        emailTextField.text = "shuvra@zabingo.com"
-        passwordTextField.text = "ae3adc81"
+        emailTextField.text = "sanchari.som@gmail.com"//"shuvra@zabingo.com"
+        passwordTextField.text = "3ab4b67f"//"ae3adc81"
 #endif
         super.viewDidAppear(animated)
     }

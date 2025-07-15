@@ -60,6 +60,8 @@ class SharedFunctions {
         TokenManager.shared.clearTokens()
         UserDefaults.standard.setValue(nil, forKey: "user_profile_picture")
         UserDefaults.standard.setValue(nil, forKey: "user_full_name")
+        // clear image cache
+        ImageCacheManager.shared.clear()
         // remove all books
         NotificationCenter.default.post(name: .removeAllBooksNotification, object: nil, userInfo: ["controller" : controller ?? 1])
     }

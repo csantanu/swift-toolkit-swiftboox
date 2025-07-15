@@ -21,6 +21,8 @@ class PublicationCollectionViewCell: UICollectionViewCell {
     @IBOutlet var currentlyReadingLabel: UILabel!
     @IBOutlet var titleLabel: UILabel!
     @IBOutlet var authorLabel: UILabel!
+    @IBOutlet weak var activityIndicator: UIActivityIndicatorView!
+    var currentImageURL: String?
 
     weak var delegate: PublicationCollectionViewCellDelegate?
 

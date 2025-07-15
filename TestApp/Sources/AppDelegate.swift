@@ -98,9 +98,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UITabBarControllerDelegat
     
     func tabBarController(_ tabBarController: UITabBarController, shouldSelect viewController: UIViewController) -> Bool {
         if (viewController.isKind(of: StoreVC.classForCoder())) {
-            let alert = UIAlertController(title: "Swiftboox", message: "This app does not support purchasing. Books purchased from our website are available to read in the Swiftboox app.", preferredStyle: .alert)
-            alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { _ in }))
-            viewController.present(alert, animated: true)
+//            let alert = UIAlertController(title: "Swiftboox", message: "This app does not support purchasing. Books purchased from our website are available to read in the Swiftboox app.", preferredStyle: .alert)
+//            alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { _ in }))
+//            viewController.present(alert, animated: true)
+            let externalLinkVC  = ExternalLinkVC(nibName: "ExternalLinkVC", bundle: nil)
+            externalLinkVC.modalPresentationStyle = .pageSheet
+            viewController.present(externalLinkVC, animated: true, completion: nil)
             return false
         } else {
             return true

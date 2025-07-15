@@ -141,6 +141,11 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
         super.viewWillTransition(to: size, with: coordinator)
         collectionView?.collectionViewLayout.invalidateLayout()
     }
+    
+    override func didReceiveMemoryWarning() {
+        super.didReceiveMemoryWarning()
+        ImageCacheManager.shared.clear()
+    }
 
     static let iPadLayoutNumberPerRow: [ScreenOrientation: Int] = [.portrait: 4, .landscape: 5]
     static let iPhoneLayoutNumberPerRow: [ScreenOrientation: Int] = [.portrait: 3, .landscape: 4]
@@ -886,7 +891,10 @@ extension LibraryViewController: UICollectionViewDelegateFlowLayout, UICollectio
     
     func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "publicationCollectionViewCell", for: indexPath) as! PublicationCollectionViewCell
+        
         cell.coverImageView.image = nil
+        cell.activityIndicator.startAnimating()
+        
         cell.progress = 0
 
         cell.isAccessibilityElement = true
@@ -917,22 +925,40 @@ extension LibraryViewController: UICollectionViewDelegateFlowLayout, UICollectio
             cell.cloudDownloadImageView.layer.cornerRadius = 4.0
         }
         
-        // Load image and then apply the shadow.
-        if let coverPath = book.coverPath,
-           let url = URL(string: coverPath) {
-            URLSession.shared.dataTask(with: url) { (data, response, error) in
-                if let imageData = data,
-                let img = UIImage(data: imageData) {
-                    DispatchQueue.main.async {
-                        cell.coverImageView.image = img
-                    }
-                } else {
-                    self.setTextImageOnCell(collectionView, book, cell)
-                }
-            }.resume()
-        } else {
+        guard let currentCoverPath = book.coverPath,
+              let url = URL(string: currentCoverPath) else {
             setTextImageOnCell(collectionView, book, cell)
+            cell.activityIndicator.stopAnimating()
+            return cell
         }
+        
+        cell.currentImageURL = currentCoverPath
+        
+        if let cachedImage = ImageCacheManager.shared.image(forKey: currentCoverPath) {
+            cell.coverImageView.image = cachedImage
+            cell.activityIndicator.stopAnimating()
+            return cell
+        }
+        
+        URLSession.shared.dataTask(with: url) { (data, response, error) in
+            if let imageData = data,
+               let img = UIImage(data: imageData) {
+                ImageCacheManager.shared.setImage(img, forKey: currentCoverPath)
+                DispatchQueue.main.async {
+                    if cell.currentImageURL == currentCoverPath {
+                        cell.coverImageView.image = img
+                        cell.activityIndicator.stopAnimating()
+                    }
+                }
+            } else {
+                DispatchQueue.main.async {
+                    if cell.currentImageURL == currentCoverPath {
+                        self.setTextImageOnCell(collectionView, book, cell)
+                        cell.activityIndicator.stopAnimating()
+                    }
+                }
+            }
+        }.resume()
 
         return cell
     }
