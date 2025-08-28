@@ -6,29 +6,17 @@
 //
 
 import UIKit
+import StoreKit
 
 class ExternalLinkVC: UIViewController {
-
-    override func viewDidLoad() {
-        super.viewDidLoad()
-    }
-
-    @IBAction func didTapContinueButton(_ sender: Any) {
-        self.dismiss(animated: true) {
-            if let url = URL(string: "https://swiftboox.app/?profile") {
-                UIApplication.shared.open(url)
-            }
-        }
-    }
-    
-    @IBAction func didTapCancelButton(_ sender: Any) {
-        self.dismiss(animated: true)
-    }
-    
-    @IBAction func didTapLearnMoreButton(_ sender: Any) {
-        self.dismiss(animated: true) {
-            if let url = URL(string: "https://apps.apple.com/story/id1614232807") {
-                UIApplication.shared.open(url)
+    @IBAction func didTapLink(_ sender: Any) {
+        Task {
+            do {
+                if await ExternalLinkAccount.canOpen {
+                    try await ExternalLinkAccount.open()
+                }
+            } catch {
+                print("Failed to open external account link: \(error)")
             }
         }
     }

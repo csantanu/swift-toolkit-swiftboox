@@ -18,95 +18,56 @@
             <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
             <subviews>
-                <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="You’re about to leave the app and go to an external website. You will no longer be transacting with Apple." textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="itx-aI-hBC">
-                    <rect key="frame" x="20" y="69.999999999999986" width="353" height="243.66666666666663"/>
-                    <fontDescription key="fontDescription" type="boldSystem" pointSize="34"/>
-                    <nil key="textColor"/>
-                    <nil key="highlightedColor"/>
-                </label>
-                <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="top" horizontalHuggingPriority="251" verticalHuggingPriority="251" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="23o-AK-DiE">
-                    <rect key="frame" x="20" y="329.66666666666669" width="353" height="162.33333333333331"/>
-                    <string key="text">Any accounts or purchases made outside of this app will be managed by the developer Swiftboox. Your App Store account, stored payment method, and related features, such as subscription management and refund requests, will not be available. Apple is not responsible for the privacy or security of transactions made with this developer.</string>
-                    <fontDescription key="fontDescription" type="system" pointSize="17"/>
+                <label opaque="NO" clipsSubviews="YES" userInteractionEnabled="NO" contentMode="top" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Manage your account on Swiftboox web." textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="0" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="23o-AK-DiE">
+                    <rect key="frame" x="20" y="397.33333333333331" width="353" height="57.333333333333314"/>
+                    <fontDescription key="fontDescription" type="system" weight="medium" pointSize="24"/>
                     <nil key="textColor"/>
                     <nil key="highlightedColor"/>
                 </label>
                 <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="G3s-pA-IEq">
-                    <rect key="frame" x="20" y="507.99999999999994" width="353" height="34.333333333333314"/>
+                    <rect key="frame" x="20" y="470.66666666666669" width="353" height="50.000000000000057"/>
                     <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                    <constraints>
+                        <constraint firstAttribute="height" constant="50" id="IRx-2r-1Zt"/>
+                    </constraints>
                     <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="17"/>
                     <inset key="imageEdgeInsets" minX="0.0" minY="0.0" maxX="2.2250738585072014e-308" maxY="0.0"/>
                     <state key="normal" title="Learn More"/>
-                    <buttonConfiguration key="configuration" style="plain" title="Learn More">
+                    <buttonConfiguration key="configuration" style="plain" title="https://swiftboox.app/?profile">
                         <fontDescription key="titleFontDescription" type="system" weight="semibold" pointSize="17"/>
                     </buttonConfiguration>
                     <connections>
-                        <action selector="didTapLearnMoreButton:" destination="-1" eventType="touchUpInside" id="spC-lV-lkN"/>
+                        <action selector="didTapLink:" destination="-1" eventType="touchUpInside" id="GMv-JG-ILs"/>
                     </connections>
                 </button>
-                <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="g2U-xl-z2G">
-                    <rect key="frame" x="20" y="713" width="353" height="50"/>
-                    <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="swiftboox+icon_60.png" translatesAutoresizingMaskIntoConstraints="NO" id="Zbi-qB-FDT">
+                    <rect key="frame" x="136.66666666666666" y="237.33333333333337" width="119.99999999999997" height="120"/>
+                    <color key="tintColor" red="0.33333334329999997" green="0.098039209840000002" blue="0.40392160420000001" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                     <constraints>
-                        <constraint firstAttribute="height" constant="50" id="YTC-96-OS2"/>
+                        <constraint firstAttribute="width" constant="120" id="PCT-Ah-1DA"/>
+                        <constraint firstAttribute="width" secondItem="Zbi-qB-FDT" secondAttribute="height" id="b1x-hl-B14"/>
                     </constraints>
-                    <color key="tintColor" systemColor="secondarySystemBackgroundColor"/>
-                    <buttonConfiguration key="configuration" style="filled" title="Continue" cornerStyle="large">
-                        <fontDescription key="titleFontDescription" type="boldSystem" pointSize="17"/>
-                        <color key="baseForegroundColor" systemColor="systemBlueColor"/>
-                    </buttonConfiguration>
-                    <connections>
-                        <action selector="didTapContinueButton:" destination="-1" eventType="touchUpInside" id="am2-1r-uRM"/>
-                    </connections>
-                </button>
-                <button opaque="NO" clipsSubviews="YES" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="7f0-NT-ByN">
-                    <rect key="frame" x="20" y="775" width="353" height="50"/>
-                    <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-                    <constraints>
-                        <constraint firstAttribute="height" constant="50" id="H2t-3R-q8P"/>
-                    </constraints>
-                    <color key="tintColor" systemColor="secondarySystemBackgroundColor"/>
-                    <state key="normal" title="Button"/>
-                    <buttonConfiguration key="configuration" style="filled" title="Cancel" cornerStyle="large">
-                        <fontDescription key="titleFontDescription" type="system" weight="semibold" pointSize="17"/>
-                        <color key="baseForegroundColor" systemColor="systemBlueColor"/>
-                    </buttonConfiguration>
-                    <connections>
-                        <action selector="didTapCancelButton:" destination="-1" eventType="touchUpInside" id="Q5e-jV-mWL"/>
-                    </connections>
-                </button>
+                </imageView>
             </subviews>
             <viewLayoutGuide key="safeArea" id="vUN-kp-3ea"/>
             <color key="backgroundColor" systemColor="systemBackgroundColor"/>
             <constraints>
-                <constraint firstItem="7f0-NT-ByN" firstAttribute="leading" secondItem="vUN-kp-3ea" secondAttribute="leading" constant="20" id="158-xg-dfC"/>
                 <constraint firstItem="23o-AK-DiE" firstAttribute="leading" secondItem="vUN-kp-3ea" secondAttribute="leading" constant="20" id="1bF-av-Wqv"/>
-                <constraint firstItem="itx-aI-hBC" firstAttribute="top" secondItem="iN0-l3-epB" secondAttribute="top" constant="70" id="D2T-BG-ZWd"/>
+                <constraint firstItem="Zbi-qB-FDT" firstAttribute="centerX" secondItem="iN0-l3-epB" secondAttribute="centerX" id="C2v-ki-6lq"/>
+                <constraint firstItem="23o-AK-DiE" firstAttribute="centerY" secondItem="iN0-l3-epB" secondAttribute="centerY" id="Jck-mK-cze"/>
                 <constraint firstItem="G3s-pA-IEq" firstAttribute="top" secondItem="23o-AK-DiE" secondAttribute="bottom" constant="16" id="LaD-oT-pQs"/>
-                <constraint firstItem="vUN-kp-3ea" firstAttribute="trailing" secondItem="g2U-xl-z2G" secondAttribute="trailing" constant="20" id="Ni3-yB-X09"/>
-                <constraint firstItem="23o-AK-DiE" firstAttribute="top" secondItem="itx-aI-hBC" secondAttribute="bottom" constant="16" id="TqV-WN-LqN"/>
                 <constraint firstItem="G3s-pA-IEq" firstAttribute="leading" secondItem="vUN-kp-3ea" secondAttribute="leading" constant="20" id="U8W-ia-H63"/>
-                <constraint firstItem="vUN-kp-3ea" firstAttribute="trailing" secondItem="7f0-NT-ByN" secondAttribute="trailing" constant="20" id="UeL-jZ-Spn"/>
                 <constraint firstItem="vUN-kp-3ea" firstAttribute="trailing" secondItem="23o-AK-DiE" secondAttribute="trailing" constant="20" id="dG4-lh-Jbg"/>
-                <constraint firstItem="7f0-NT-ByN" firstAttribute="bottom" secondItem="iN0-l3-epB" secondAttribute="bottom" constant="-27" id="hhk-hm-rIr"/>
+                <constraint firstItem="23o-AK-DiE" firstAttribute="top" secondItem="Zbi-qB-FDT" secondAttribute="bottom" constant="40" id="g9t-0f-9tU"/>
                 <constraint firstItem="vUN-kp-3ea" firstAttribute="trailing" secondItem="G3s-pA-IEq" secondAttribute="trailing" constant="20" id="kHg-eY-TBw"/>
-                <constraint firstItem="vUN-kp-3ea" firstAttribute="trailing" secondItem="itx-aI-hBC" secondAttribute="trailing" constant="20" id="oge-Dy-zKB"/>
-                <constraint firstItem="g2U-xl-z2G" firstAttribute="leading" secondItem="vUN-kp-3ea" secondAttribute="leading" constant="20" id="tde-xV-akP"/>
-                <constraint firstItem="7f0-NT-ByN" firstAttribute="top" secondItem="g2U-xl-z2G" secondAttribute="bottom" constant="12" id="uX3-rf-XC8"/>
-                <constraint firstItem="itx-aI-hBC" firstAttribute="leading" secondItem="vUN-kp-3ea" secondAttribute="leading" constant="20" id="zKo-j6-khd"/>
             </constraints>
             <point key="canvasLocation" x="107.63358778625954" y="19.718309859154932"/>
         </view>
     </objects>
     <resources>
-        <systemColor name="secondarySystemBackgroundColor">
-            <color red="0.94901960784313721" green="0.94901960784313721" blue="0.96862745098039216" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
-        </systemColor>
+        <image name="swiftboox+icon_60.png" width="180" height="180"/>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
-        </systemColor>
-        <systemColor name="systemBlueColor">
-            <color red="0.0" green="0.47843137254901963" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </systemColor>
     </resources>
 </document>
