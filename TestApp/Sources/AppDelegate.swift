@@ -55,6 +55,7 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UITabBarControllerDelegat
         tabBarAppearance.backgroundColor = .white
         tabBarController.tabBar.standardAppearance = tabBarAppearance
         tabBarController.tabBar.scrollEdgeAppearance = tabBarAppearance
+        tabBarController.traitOverrides.userInterfaceIdiom = .phone
         tabBarController.viewControllers = [
             libraryViewController,
             externalLinkVC,

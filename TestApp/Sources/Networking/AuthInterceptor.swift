@@ -120,22 +120,35 @@ class AuthInterceptor {
             do {
                 let parsedData = try JSONSerialization.jsonObject(with: data) as! [String:Any]
                 print("\nrefresh token parsedData: ", parsedData)
-                if let success = parsedData["success"] as? String,
-                   success == "1",
-                   let data = parsedData["data"] as? [String:String],
-                   let newAccess = data["access_token"],
-                   let newRefresh = data["refresh_token"],
-                   newAccess.count > 0,
-                   newRefresh.count > 0
-                {
-                    TokenManager.shared.save(accessToken: newAccess, refreshToken: newRefresh)
-                    completion(true)
+                if let success = parsedData["success"] as? String {
+                    if success == "1",
+                       let data = parsedData["data"] as? [String:String],
+                       let newAccess = data["access_token"],
+                       let newRefresh = data["refresh_token"],
+                       newAccess.count > 0,
+                       newRefresh.count > 0 {
+                        TokenManager.shared.save(accessToken: newAccess, refreshToken: newRefresh)
+                        completion(true)
+                    } else {
+                        print("logout")
+                        // clear user data
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: {
+                            SharedFunctions.clearUserData()
+                            if let appdel = UIApplication.shared.delegate as? AppDelegate {
+                                let alert = UIAlertController(title: "Session Ended", message: "Your session has expired or this device has been de-authorized.", preferredStyle: .alert)
+                                alert.addAction(UIAlertAction(title: "OK", style: .default, handler: { _ in }))
+                                appdel.window?.rootViewController?.present(alert, animated: true)
+                            }
+                            completion(false)
+                        })
+                    }
                 } else {
                     completion(false)
                     return
                 }
             } catch let error as NSError {
                 print(error)
+                completion(false)
             }
         }.resume()
     }

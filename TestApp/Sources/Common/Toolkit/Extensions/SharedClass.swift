@@ -63,7 +63,9 @@ class SharedFunctions {
         // clear image cache
         ImageCacheManager.shared.clear()
         // remove all books
-        NotificationCenter.default.post(name: .removeAllBooksNotification, object: nil, userInfo: ["controller" : controller ?? 1])
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0, execute: {
+            NotificationCenter.default.post(name: .removeAllBooksNotification, object: nil, userInfo: ["controller" : controller ?? 1])
+        })
     }
 }
 

@@ -193,6 +193,7 @@ class LibraryViewController: UIViewController, Loggable, LoginDelegate {
             self.navigationItem.rightBarButtonItems = [refreshLibraryButton, searchShowHideButton]
         } else {
             self.navigationItem.rightBarButtonItems = [loginButton]
+            self.navigationItem.title = "Library"
         }
     }
     
